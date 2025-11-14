@@ -1,0 +1,123 @@
+.io-gallery {
+    display: grid;
+    gap: 1rem;
+}
+
+.io-gallery img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.io-gallery-item {
+    position: relative;
+}
+
+.io-gallery-trigger {
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+
+/* Column layouts */
+.io-columns-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+.io-columns-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.io-columns-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.io-columns-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.io-columns-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.io-columns-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+
+/* Modal styling */
+.io-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+
+.io-modal.io-open {
+    display: flex;
+}
+
+.io-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+}
+
+.io-modal-dialog {
+    position: relative;
+    background: #fff;
+    border-radius: 6px;
+    max-width: 900px;
+    width: 90%;
+    max-height: 90vh;
+    overflow: auto;
+    padding: 1.5rem;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    z-index: 1;
+    display: grid;
+    gap: 1rem;
+}
+
+.io-modal-image-wrap img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 4px;
+}
+
+.io-modal-meta {
+    font-size: 0.9rem;
+}
+
+.io-modal-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.75rem;
+    background: none;
+    border: none;
+    font-size: 1.75rem;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.io-modal-download {
+    display: inline-block;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.85rem;
+    border-radius: 4px;
+    text-decoration: none;
+    border: 1px solid #333;
+    margin-top: 0.5rem;
+}
+
+.io-gallery-wrapper {
+    margin-bottom: 2rem;
+}
+
+.io-filters {
+    margin-bottom: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.io-filter-button {
+    border: 1px solid #ccc;
+    background: #f7f7f7;
+    padding: 0.3rem 0.75rem;
+    border-radius: 3px;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.io-filter-button.io-filter-active {
+    border-color: #333;
+    background: #e2e2e2;
+}
