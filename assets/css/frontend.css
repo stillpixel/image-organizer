@@ -1,3 +1,6 @@
+/* =========================
+   Core gallery grid
+   ========================= */
 .io-gallery {
     display: grid;
     gap: 1rem;
@@ -9,6 +12,12 @@
     height: auto;
     border-radius: 4px;
     cursor: pointer;
+}
+
+/* Ensure images don't get weird focus outlines themselves;
+   the button wrapper will show focus instead. */
+.io-gallery img:focus {
+    outline: none;
 }
 
 .io-gallery-item {
@@ -30,7 +39,9 @@
 .io-columns-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .io-columns-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 
-/* Modal styling */
+/* =========================
+   Modal styling
+   ========================= */
 .io-modal {
     display: none;
     position: fixed;
@@ -50,9 +61,10 @@
     background: rgba(0, 0, 0, 0.65);
 }
 
+/* Make dialog focusable and clearly visible when focused */
 .io-modal-dialog {
     position: relative;
-    background: #fff;
+    background: #ffffff;
     border-radius: 6px;
     max-width: 900px;
     width: 90%;
@@ -63,6 +75,7 @@
     z-index: 1;
     display: grid;
     gap: 1rem;
+    outline: none;
 }
 
 .io-modal-image-wrap img {
@@ -93,10 +106,15 @@
     font-size: 0.85rem;
     border-radius: 4px;
     text-decoration: none;
-    border: 1px solid #333;
+    border: 1px solid #333333;
     margin-top: 0.5rem;
+    color: inherit;
+    background-color: #f7f7f7;
 }
 
+/* =========================
+   Wrapper and filters
+   ========================= */
 .io-gallery-wrapper {
     margin-bottom: 2rem;
 }
@@ -108,20 +126,26 @@
     gap: 0.5rem;
 }
 
+/* Slightly stronger border/contrast, explicit text color */
 .io-filter-button {
-    border: 1px solid #ccc;
+    border: 1px solid #999999;
     background: #f7f7f7;
     padding: 0.3rem 0.75rem;
     border-radius: 3px;
     font-size: 0.85rem;
     cursor: pointer;
+    color: #111111;
 }
 
+/* Active filter: darker bg + border for better contrast */
 .io-filter-button.io-filter-active {
-    border-color: #333;
-    background: #e2e2e2;
+    border-color: #333333;
+    background: #d9d9d9;
 }
 
+/* =========================
+   Pagination
+   ========================= */
 .io-pagination {
     margin-top: 1.5rem;
     text-align: center;
@@ -131,12 +155,69 @@
     padding: 0.5rem 1.25rem;
     font-size: 0.9rem;
     border-radius: 4px;
-    border: 1px solid #333;
+    border: 1px solid #333333;
     background: #f7f7f7;
     cursor: pointer;
+    color: #111111;
 }
 
 .io-load-more[disabled] {
     opacity: 0.6;
     cursor: default;
+}
+
+/* =========================
+   Live region / status text
+   ========================= */
+.io-status {
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+}
+
+/* =========================
+   Focus styles
+   ========================= */
+
+/* General pattern: use :focus-visible so mouse users don’t see outlines,
+   but keyboard users do. */
+
+.io-gallery-trigger:focus-visible,
+.io-filter-button:focus-visible,
+.io-load-more:focus-visible,
+.io-modal-close:focus-visible,
+.io-modal-download:focus-visible,
+.io-modal-dialog:focus-visible {
+    outline: 2px solid #005fcc;
+    outline-offset: 2px;
+}
+
+/* In case a browser doesn’t support :focus-visible, keep a basic :focus
+   as a fallback, but slightly subdued so it’s not too aggressive. */
+.io-gallery-trigger:focus,
+.io-filter-button:focus,
+.io-load-more:focus,
+.io-modal-close:focus,
+.io-modal-download:focus,
+.io-modal-dialog:focus {
+    outline: 2px solid #005fcc;
+    outline-offset: 2px;
+}
+
+/* =========================
+   Reduced motion
+   ========================= */
+
+/* If you add any transitions/animations later, this protects users who
+   prefer reduced motion. Even now it’s harmless and future-proof. */
+@media (prefers-reduced-motion: reduce) {
+    .io-modal,
+    .io-modal-dialog,
+    .io-gallery-item,
+    .io-load-more,
+    .io-filter-button {
+        scroll-behavior: auto;
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+    }
 }

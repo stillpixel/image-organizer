@@ -1,223 +1,272 @@
 # Image Organizer Gallery
 
-**Version:** 1.1.0\
-**Requires at least:** WordPress 6.0+\
-**Tested up to:** WordPress 6.8.x\
-**Requires PHP:** 7.4+\
-**License:** GPL-2.0+\
-**Author:** Ron Rattie\
-**Description:**\
-A powerful yet lightweight image organizer and gallery plugin for
-WordPress. It allows you to manage images with categories & tags,
-display them in a responsive frontend gallery, open an image modal with
-full metadata, and load additional images dynamically via AJAX
-pagination.
+**Version:** 1.1.0  
+**Requires at least:** WordPress 6.0+  
+**Tested up to:** WordPress 6.8.x  
+**Requires PHP:** 7.4+  
+**License:** GPL-2.0+  
+**Author:** Ron Rattie  
+**Plugin URI:** https://stillpixelstudios.com/  
 
-## 📌 Overview
+**Description:**  
+A powerful yet lightweight, fully accessible image organizer and gallery plugin for WordPress. Includes metadata display, category & tag filtering, a responsive modal viewer, and AJAX “Load More” pagination — designed to meet **WCAG 2.1 AA** and **Section 508** requirements.
 
-Image Organizer Gallery enhances WordPress' media library and turns it
-into a fully-organized, filterable, paginated gallery system.
+---
 
-### Key Features
+# 📌 Overview
 
--   **Uses WordPress Media Library metadata**\
-    (title, caption, description, alt text)
+Image Organizer Gallery enhances WordPress’ media library and turns it into a fully organized, filterable, paginated gallery system — now fully accessibility-optimized for government, education, and enterprise environments.
 
--   **Allows categories & tags for images**\
-    Media attachments can be organized with normal WordPress `category`
-    and `post_tag` taxonomies.
+## Key Features
 
--   **Frontend gallery shortcode**\
-    Responsive CSS grid with customizable columns and ordering.
+- **Uses WordPress Media Library metadata**  
+  Automatically pulls title, caption, description, alt text, and file information.
 
--   **Modal image viewer**\
-    Displays full-size image, title, caption, description, alt text, and
-    a download button.
+- **Categories & tags for images**  
+  Attachments support built-in `category` and `post_tag` taxonomies.
 
--   **Dynamic taxonomy filter**\
-    Shows category or tag filter buttons allowing users to filter images
-    client-side.
+- **Frontend gallery shortcode**  
+  Responsive CSS grid with customizable columns and batch sizes.
 
--   **AJAX Pagination ("Load More")**\
-    Load images in batches instead of dumping everything at once.
+- **Accessible modal viewer**  
+  Fully ARIA-labeled dialog showing full-size image, caption, description, alt text, and a download button.
 
--   **Lightweight --- no external libraries**\
-    Uses built-in WP functions and a small amount of clean JS/CSS.
+- **Dynamic taxonomy filter bar**  
+  Accessible button bar with active-state management and ARIA properties.
 
-## 📦 Installation
+- **AJAX pagination (“Load More”)**  
+  Load images in batches for a faster, lighter gallery.
 
-1.  Upload the plugin folder `image-organizer` to:
+- **Designed for WCAG 2.1 AA & 508**  
+  Includes focus management, ARIA roles, reduced-motion support, focus trapping, live region announcements, and color-contrast improvements.
 
-        wp-content/plugins/
+---
 
-2.  Activate the plugin from\
-    **WordPress Admin → Plugins → Installed Plugins**\
+# 📦 Installation
 
-3.  The plugin is now ready for use.
+1. Upload the plugin folder **`image-organizer`** to:
 
-## 🖼️ Adding Metadata to Images
+```
+wp-content/plugins/
+```
 
-This plugin uses the built-in metadata fields from the WordPress Media
-Library:
+2. Activate in:  
+   **WordPress Admin → Plugins**
 
--   **Title**
--   **Caption**
--   **Description**
--   **Alt Text**
+3. Use shortcode in any page or post.
+
+---
+
+# 🖼️ Adding Metadata to Images
+
+The plugin uses native WordPress metadata:
+
+- Title  
+- Caption  
+- Description  
+- Alt text  
 
 To edit metadata:
 
-1.  Go to **Media → Library**
-2.  Switch to **List view**
-3.  Click on an image
-4.  Enter the title, caption, alt text, and description
-5.  Click **Update**
+1. Go to **Media → Library**
+2. Switch to **List view**  
+3. Click an image  
+4. Modify metadata fields  
+5. Press **Update**
 
-All metadata appears automatically in the frontend modal.
+All fields populate automatically in the modal.
 
-## 📚 Assigning Categories & Tags to Images
+---
 
-The plugin enables WordPress' existing taxonomies on attachments.
+# 📚 Assigning Categories & Tags to Images
+
+This plugin enables categories & tags on attachments.
 
 To categorize images:
 
-1.  Open **Media → Library**
-2.  Switch to **List view**
-3.  Click an image to edit it
-4.  On the right sidebar you will now see:
-    -   **Categories**
-    -   **Tags**
-5.  Assign any categories/tags you want
+1. Open **Media → Library**  
+2. Click an image  
+3. Assign **Categories** and **Tags** from the sidebar  
+4. Save changes
 
-These categories and tags will be used for filtering and querying.
+These terms are used for filtering and querying.
 
-## 🔧 Shortcode Usage
+---
 
-Insert the gallery using:
+# 🔧 Shortcode Usage
 
-    [image_organizer]
+Use the gallery shortcode:
 
-### Shortcode Parameters
+```
+[image_organizer]
+```
 
-  ----------------------------------------------------------------------------
-  Parameter           Type           Default          Description
-  ------------------- -------------- ---------------- ------------------------
-  `columns`           int            4                Number of grid columns
-                                                      (1--6)
+### Parameters
 
-  `limit`             int            12               Number of images per
-                                                      "page" (AJAX batch size)
+| Parameter         | Type        | Default  | Description |
+|------------------|-------------|----------|-------------|
+| `columns`        | int         | 4        | Grid columns (1–6) |
+| `limit`          | int         | 12       | Images per batch |
+| `ids`            | CSV list    | (empty)  | Restrict to specific attachment IDs |
+| `categories`     | CSV list    | (empty)  | Filter by category slugs |
+| `tags`           | CSV list    | (empty)  | Filter by tag slugs |
+| `show_filter`    | true/false  | false    | Enable filter bar |
+| `filter_taxonomy`| category/tag| category | Which taxonomy filter uses |
 
-  `ids`               CSV            empty            Only show specified
-                                                      attachment IDs
+### Examples
 
-  `categories`        CSV            empty            Filter: include only
-                                                      images in these category
-                                                      slugs
+**Basic gallery**
+```
+[image_organizer columns="4" limit="12"]
+```
 
-  `tags`              CSV            empty            Filter: include only
-                                                      images in these tag
-                                                      slugs
+**Enable category filter**
+```
+[image_organizer show_filter="true" filter_taxonomy="category"]
+```
 
-  `show_filter`       true/false     false            Show the filter bar
+**Show only specific categories**
+```
+[image_organizer categories="landscape,portraits"]
+```
 
-  `filter_taxonomy`   category/tag   category         Which taxonomy the
-                                                      filter bar uses
-  ----------------------------------------------------------------------------
+**Tag-based filter**
+```
+[image_organizer show_filter="true" filter_taxonomy="tag"]
+```
 
-### Basic Gallery
+**Only images tagged "featured"**
+```
+[image_organizer tags="featured" limit="16" columns="3"]
+```
 
-    [image_organizer columns="4" limit="12"]
+---
 
-### Enable Category Filter
+# ⚙️ AJAX Pagination (“Load More”)
 
-    [image_organizer show_filter="true" filter_taxonomy="category"]
+The gallery loads the first batch immediately. The “Load More” button:
 
-### Show Only a Specific Category
+- Fetches next images via AJAX  
+- Appends items dynamically  
+- Hides when no more content remains  
+- Announces new images via ARIA live region for screen readers  
 
-    [image_organizer categories="landscape,portraits"]
+---
 
-### Filter Bar Using Tags
+# 🖼️ Modal Viewer
 
-    [image_organizer show_filter="true" filter_taxonomy="tag"]
+Displays:
 
-### Only Show Images Tagged "featured"
+- Full-size image  
+- Title  
+- Caption  
+- Full description  
+- Alt text  
+- Download link  
 
-    [image_organizer tags="featured" limit="16" columns="3"]
+Modal can be closed via:
 
-## ⚙️ AJAX Pagination ("Load More")
+- Close button  
+- Clicking the backdrop  
+- Pressing **ESC**
 
-The plugin includes a bottom "Load more" button.
+The modal traps keyboard focus until closed.
 
-### How It Works
+---
 
--   The first batch (`limit`) is loaded with the shortcode\
--   Clicking **Load More** requests the next batch from
-    `admin-ajax.php`\
--   Images are appended dynamically\
--   The button hides automatically when no more images are available
+# 🎨 Styling
 
-## 🖼️ Modal Viewer
+Gallery layout uses modern CSS Grid:
 
-Clicking an image opens a responsive modal containing:
+- `.io-gallery`  
+- `.io-columns-*`  
+- `.io-filters`  
+- `.io-pagination`  
+- `.io-modal`  
 
--   Large version of the image\
--   Title\
--   Caption\
--   Full description\
--   Alt text\
--   Download link for the original image
+You may override any class in your theme stylesheet.
 
-Modal can be closed by:
+---
 
--   Close button\
--   Clicking background overlay\
--   ESC key
+# ♿ Accessibility Features (WCAG 2.1 AA / Section 508)
 
-## 🎨 Styling Notes
+## Semantic Roles & ARIA
+- Gallery wrapper uses `role="region"` with `aria-label`.
+- Modal uses `role="dialog"` with `aria-modal="true"`.
+- Modal includes `aria-labelledby`, `aria-describedby`.
+- Filter bar includes `role="toolbar"` and `aria-pressed` states.
+- Live region (`aria-live="polite"`) announces dynamic updates.
 
-Gallery layout uses CSS Grid:
+## Keyboard Navigation
+- Every interactive element is reachable via keyboard.
+- Modal traps focus and returns focus to the trigger upon closing.
+- ESC closes modal.
+- Fully visible focus outlines using `:focus-visible`.
 
--   `.io-gallery`
--   `.io-columns-*`
--   `.io-filters`
--   `.io-pagination`
--   `.io-modal`
+## Screen Reader Enhancements
+- Each thumbnail trigger includes a descriptive `aria-label`.
+- Live announcements when loading new images.
+- Filter button states announced using `aria-pressed`.
 
-Override in theme CSS anytime.
+## Reduced Motion Support
+The plugin honors:
 
-## 🚀 Developer Info
+```css
+@media (prefers-reduced-motion: reduce) {
+    transition-duration: 0.001ms !important;
+    animation-duration: 0.001ms !important;
+}
+```
+
+## Color Contrast Improvements
+- Buttons and active states meet WCAG AA contrast ratios.
+- Outlines use accessible blue (#005fcc) with proper offset.
+
+---
+
+# 🚀 Developer Info
 
 ### AJAX Endpoint
 
-    action: io_load_more
-    method: POST
-    file: admin-ajax.php
+```
+action: io_load_more
+method: POST
+```
 
 ### Localized Script Vars
 
-``` js
+```js
 ImageOrganizerData.ajax_url  
 ImageOrganizerData.nonce
 ```
 
-### Files
+### File Structure
 
-    image-organizer/
-      image-organizer.php
-      README.md
-      assets/
-        css/frontend.css
-        js/frontend.js
+```
+image-organizer/
+  image-organizer.php
+  README.md
+  assets/
+	img/banner-1544-500.png
+	img/icon-512x512.png
+    css/frontend.css
+    js/frontend.js
+```
 
-## 🤝 Contributing
+---
 
-Pull requests and enhancements welcome.
+# 🤝 Contributing
 
-## 📄 License
+Pull requests and accessibility audits are welcome.
+
+---
+
+# 📄 License
 
 GPL-2.0 or later.
 
-## 🎉 Thank You!
+---
 
-Thanks for using Image Organizer Gallery!
+# 🎉 Thank You!
+
+Thanks for using **Image Organizer Gallery**.

@@ -2,9 +2,9 @@
 
 /**
  * Plugin Name: Image Organizer Gallery
- * Plugin URI:  https://stillpixelstudios.gov/
+ * Plugin URI:  https://stillpixelstudios.com/
  * Description: Simple image organizer/gallery with metadata modal and download button.
- * Version:     1.1.0
+ * Version:     1.1.1
  * Author:      Ron Rattie
  * Text Domain: image-organizer
  * Requires at least: 6.0
@@ -29,7 +29,6 @@ class Image_Organizer_Gallery
         add_action('wp_ajax_nopriv_io_load_more', [$this, 'ajax_load_more']);
     }
 
-
     public function register_taxonomies()
     {
         // Allow built-in category and post_tag taxonomies on attachments
@@ -37,11 +36,9 @@ class Image_Organizer_Gallery
         register_taxonomy_for_object_type('post_tag', 'attachment');
     }
 
-
-
     public function register_assets()
     {
-        $version = '1.1.0';
+        $version = '1.1.1';
 
         wp_register_style(
             'image-organizer-frontend',
@@ -68,12 +65,14 @@ class Image_Organizer_Gallery
         );
     }
 
-
     /**
      * Shortcode: [image_organizer ids="1,2,3" columns="4" limit="12"]
      */
     public function render_gallery_shortcode($atts)
     {
+        static $instance = 0;
+        $instance++;
+
         $atts = shortcode_atts(
             [
                 'ids'             => '',
@@ -83,6 +82,7 @@ class Image_Organizer_Gallery
                 'tags'            => '',          // tag slugs
                 'show_filter'     => 'false',
                 'filter_taxonomy' => 'category',  // 'category' or 'tag'
+                'aria_label'      => '',          // optional accessible name for region
             ],
             $atts,
             'image_organizer'
@@ -149,6 +149,18 @@ class Image_Organizer_Gallery
 
         $columns = max(1, min(6, intval($atts['columns'])));
 
+        // Unique IDs per gallery instance
+        $gallery_id           = 'io-gallery-' . $instance;
+        $gallery_region_label = $atts['aria_label'];
+        if ('' === $gallery_region_label) {
+            $gallery_region_label = __('Image gallery', 'image-organizer');
+        }
+        $gallery_list_id     = $gallery_id . '-list';
+        $modal_id            = $gallery_id . '-modal';
+        $modal_title_id      = $gallery_id . '-modal-title';
+        $modal_desc_wrapper  = $gallery_id . '-modal-description';
+        $status_id           = $gallery_id . '-status';
+
         // Filter UI settings
         $show_filter     = filter_var($atts['show_filter'], FILTER_VALIDATE_BOOLEAN);
         $filter_taxonomy = ('tag' === strtolower($atts['filter_taxonomy'])) ? 'post_tag' : 'category';
@@ -176,10 +188,13 @@ class Image_Organizer_Gallery
         $has_more  = $max_pages > 1;
 
         ob_start();
-?>
+        ?>
 
         <div
             class="io-gallery-wrapper"
+            id="<?php echo esc_attr($gallery_id); ?>"
+            role="region"
+            aria-label="<?php echo esc_attr($gallery_region_label); ?>"
             data-io-per-page="<?php echo esc_attr($per_page); ?>"
             data-io-columns="<?php echo esc_attr($columns); ?>"
             data-io-categories="<?php echo esc_attr($atts['categories']); ?>"
@@ -191,22 +206,34 @@ class Image_Organizer_Gallery
             data-io-current-page="1">
 
             <?php if ($show_filter && ! empty($filter_terms)) : ?>
-                <div class="io-filters" data-io-taxonomy="<?php echo esc_attr($filter_taxonomy); ?>">
-                    <button class="io-filter-button io-filter-active" type="button" data-io-term="all">
+                <div
+                    class="io-filters"
+                    data-io-taxonomy="<?php echo esc_attr($filter_taxonomy); ?>"
+                    role="toolbar"
+                    aria-label="<?php esc_attr_e('Filter images', 'image-organizer'); ?>">
+                    <button
+                        class="io-filter-button io-filter-active"
+                        type="button"
+                        data-io-term="all"
+                        aria-pressed="true">
                         <?php esc_html_e('All', 'image-organizer'); ?>
                     </button>
                     <?php foreach ($filter_terms as $term) : ?>
                         <button
                             class="io-filter-button"
                             type="button"
-                            data-io-term="<?php echo esc_attr('term-' . $term->term_id); ?>">
+                            data-io-term="<?php echo esc_attr('term-' . $term->term_id); ?>"
+                            aria-pressed="false">
                             <?php echo esc_html($term->name); ?>
                         </button>
                     <?php endforeach; ?>
                 </div>
             <?php endif; ?>
 
-            <div class="io-gallery io-columns-<?php echo esc_attr($columns); ?>">
+            <div
+                class="io-gallery io-columns-<?php echo esc_attr($columns); ?>"
+                id="<?php echo esc_attr($gallery_list_id); ?>"
+                role="list">
                 <?php
                 while ($query->have_posts()) :
                     $query->the_post();
@@ -241,14 +268,36 @@ class Image_Organizer_Gallery
                     }
 
                     $item_terms_attr = ! empty($item_terms) ? implode(' ', $item_terms) : '';
-                ?>
-                    <div class="io-gallery-item"
+
+                    // Accessible label for the trigger button
+                    $button_label_parts = [];
+                    if ($title) {
+                        $button_label_parts[] = $title;
+                    }
+                    if ($caption) {
+                        $button_label_parts[] = $caption;
+                    }
+                    if ($alt && empty($button_label_parts)) {
+                        $button_label_parts[] = $alt;
+                    }
+                    $button_aria_label = $button_label_parts
+                        ? sprintf(
+                            /* translators: %s is the image title or description */
+                            __('View details for "%s"', 'image-organizer'),
+                            implode(' – ', $button_label_parts)
+                        )
+                        : __('View image details', 'image-organizer');
+                    ?>
+                    <div
+                        class="io-gallery-item"
+                        role="listitem"
                         <?php if ($show_filter) : ?>
-                        data-io-terms="<?php echo esc_attr($item_terms_attr); ?>"
+                            data-io-terms="<?php echo esc_attr($item_terms_attr); ?>"
                         <?php endif; ?>>
                         <button
                             class="io-gallery-trigger"
                             type="button"
+                            aria-label="<?php echo esc_attr($button_aria_label); ?>"
                             data-io-title="<?php echo esc_attr($title); ?>"
                             data-io-caption="<?php echo esc_attr($caption); ?>"
                             data-io-description="<?php echo esc_attr(wp_strip_all_tags($description)); ?>"
@@ -264,26 +313,60 @@ class Image_Organizer_Gallery
 
             <?php if ($has_more) : ?>
                 <div class="io-pagination">
-                    <button type="button" class="io-load-more" data-io-page="1">
+                    <button
+                        type="button"
+                        class="io-load-more"
+                        data-io-page="1"
+                        aria-label="<?php esc_attr_e('Load more images', 'image-organizer'); ?>"
+                        aria-controls="<?php echo esc_attr($gallery_list_id); ?>">
                         <?php esc_html_e('Load more', 'image-organizer'); ?>
                     </button>
                 </div>
             <?php endif; ?>
 
+            <!-- Live region for status updates (AJAX) -->
+            <div
+                id="<?php echo esc_attr($status_id); ?>"
+                class="io-status"
+                aria-live="polite"
+                aria-atomic="true">
+            </div>
+
             <!-- Modal (once per gallery) -->
-            <div class="io-modal" id="io-modal" aria-hidden="true" role="dialog" aria-modal="true">
-                <div class="io-modal-backdrop"></div>
-                <div class="io-modal-dialog" role="document">
-                    <button type="button" class="io-modal-close" aria-label="<?php esc_attr_e('Close', 'image-organizer'); ?>">&times;</button>
+            <div
+                class="io-modal"
+                id="<?php echo esc_attr($modal_id); ?>"
+                aria-hidden="true"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="<?php echo esc_attr($modal_title_id); ?>"
+                aria-describedby="<?php echo esc_attr($modal_desc_wrapper); ?>">
+                <div class="io-modal-backdrop" tabindex="-1"></div>
+                <div class="io-modal-dialog" role="document" tabindex="-1">
+                    <button
+                        type="button"
+                        class="io-modal-close"
+                        aria-label="<?php esc_attr_e('Close image details', 'image-organizer'); ?>">
+                        &times;
+                    </button>
                     <div class="io-modal-image-wrap">
-                        <img id="io-modal-image" src="" alt="">
+                        <img class="io-modal-image" src="" alt="">
                     </div>
                     <div class="io-modal-meta">
-                        <h2 id="io-modal-title"></h2>
-                        <p id="io-modal-caption"></p>
-                        <p id="io-modal-description"></p>
-                        <p><strong><?php esc_html_e('Alt text:', 'image-organizer'); ?></strong> <span id="io-modal-alt"></span></p>
-                        <a id="io-modal-download" href="#" download class="io-modal-download">
+                        <h2 id="<?php echo esc_attr($modal_title_id); ?>" class="io-modal-title"></h2>
+                        <div id="<?php echo esc_attr($modal_desc_wrapper); ?>" class="io-modal-desc-wrapper">
+                            <p class="io-modal-caption"></p>
+                            <p class="io-modal-description"></p>
+                            <p>
+                                <strong><?php esc_html_e('Alt text:', 'image-organizer'); ?></strong>
+                                <span class="io-modal-alt"></span>
+                            </p>
+                        </div>
+                        <a
+                            class="io-modal-download"
+                            id="<?php echo esc_attr($gallery_id); ?>-modal-download"
+                            href="#"
+                            download>
                             <?php esc_html_e('Download image', 'image-organizer'); ?>
                         </a>
                     </div>
@@ -363,8 +446,8 @@ class Image_Organizer_Gallery
         if (! $query->have_posts()) {
             wp_send_json_success(
                 [
-                    'html'     => '',
-                    'has_more' => false,
+                    'html'      => '',
+                    'has_more'  => false,
                     'next_page' => null,
                 ]
             );
@@ -405,14 +488,35 @@ class Image_Organizer_Gallery
             }
 
             $item_terms_attr = ! empty($item_terms) ? implode(' ', $item_terms) : '';
-        ?>
-            <div class="io-gallery-item"
+
+            // Same accessible label logic as in main render
+            $button_label_parts = [];
+            if ($title) {
+                $button_label_parts[] = $title;
+            }
+            if ($caption) {
+                $button_label_parts[] = $caption;
+            }
+            if ($alt && empty($button_label_parts)) {
+                $button_label_parts[] = $alt;
+            }
+            $button_aria_label = $button_label_parts
+                ? sprintf(
+                    __('View details for "%s"', 'image-organizer'),
+                    implode(' – ', $button_label_parts)
+                )
+                : __('View image details', 'image-organizer');
+            ?>
+            <div
+                class="io-gallery-item"
+                role="listitem"
                 <?php if ($show_filter) : ?>
-                data-io-terms="<?php echo esc_attr($item_terms_attr); ?>"
+                    data-io-terms="<?php echo esc_attr($item_terms_attr); ?>"
                 <?php endif; ?>>
                 <button
                     class="io-gallery-trigger"
                     type="button"
+                    aria-label="<?php echo esc_attr($button_aria_label); ?>"
                     data-io-title="<?php echo esc_attr($title); ?>"
                     data-io-caption="<?php echo esc_attr($caption); ?>"
                     data-io-description="<?php echo esc_attr(wp_strip_all_tags($description)); ?>"
@@ -422,7 +526,7 @@ class Image_Organizer_Gallery
                     <?php echo $thumb_html; ?>
                 </button>
             </div>
-<?php
+            <?php
         endwhile;
         wp_reset_postdata();
 
