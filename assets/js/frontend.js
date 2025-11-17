@@ -58,7 +58,6 @@ jQuery(function ($) {
         var $btn = $(this);
         var term = $btn.data('io-term');
 
-        // Set active state
         $btn
             .addClass('io-filter-active')
             .siblings('.io-filter-button')
@@ -80,6 +79,55 @@ jQuery(function ($) {
                 $item.show();
             } else {
                 $item.hide();
+            }
+        });
+    });
+
+    // Load more button
+    $(document).on('click', '.io-load-more', function () {
+        var $btn = $(this);
+        var $wrapper = $btn.closest('.io-gallery-wrapper');
+        var $gallery = $wrapper.find('.io-gallery');
+
+        var currentPage = parseInt($wrapper.data('io-current-page'), 10) || 1;
+        var maxPages = parseInt($wrapper.data('io-max-pages'), 10) || 1;
+
+        if (currentPage >= maxPages) {
+            $btn.remove();
+            return;
+        }
+
+        $btn.prop('disabled', true).text('Loading...');
+
+        var data = {
+            action: 'io_load_more',
+            nonce: (typeof ImageOrganizerData !== 'undefined') ? ImageOrganizerData.nonce : '',
+            page: currentPage + 1,
+            per_page: $wrapper.data('io-per-page'),
+            columns: $wrapper.data('io-columns'),
+            categories: $wrapper.data('io-categories') || '',
+            tags: $wrapper.data('io-tags') || '',
+            filter_taxonomy: $wrapper.data('io-filter-taxonomy') || 'category',
+            show_filter: $wrapper.data('io-show-filter') || 'false',
+            ids: $wrapper.data('io-ids') || ''
+        };
+
+        $.post(ImageOrganizerData.ajax_url, data, function (response) {
+            if (!response || !response.success) {
+                $btn.prop('disabled', false).text('Load more');
+                return;
+            }
+
+            if (response.data && response.data.html) {
+                $gallery.append(response.data.html);
+            }
+
+            if (response.data && response.data.has_more) {
+                var nextPage = response.data.next_page || currentPage + 1;
+                $wrapper.data('io-current-page', nextPage);
+                $btn.prop('disabled', false).text('Load more');
+            } else {
+                $btn.remove();
             }
         });
     });

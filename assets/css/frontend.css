@@ -121,3 +121,22 @@
     border-color: #333;
     background: #e2e2e2;
 }
+
+.io-pagination {
+    margin-top: 1.5rem;
+    text-align: center;
+}
+
+.io-load-more {
+    padding: 0.5rem 1.25rem;
+    font-size: 0.9rem;
+    border-radius: 4px;
+    border: 1px solid #333;
+    background: #f7f7f7;
+    cursor: pointer;
+}
+
+.io-load-more[disabled] {
+    opacity: 0.6;
+    cursor: default;
+}

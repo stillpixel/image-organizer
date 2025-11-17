@@ -2,9 +2,9 @@
 
 /**
  * Plugin Name: Image Organizer Gallery
- * Plugin URI:  https://gao.gov/
+ * Plugin URI:  https://stillpixelstudios.gov/
  * Description: Simple image organizer/gallery with metadata modal and download button.
- * Version:     1.0.0
+ * Version:     1.1.0
  * Author:      Ron Rattie
  * Text Domain: image-organizer
  * Requires at least: 6.0
@@ -23,7 +23,12 @@ class Image_Organizer_Gallery
         add_action('init', [$this, 'register_taxonomies']);
         add_shortcode('image_organizer', [$this, 'render_gallery_shortcode']);
         add_action('wp_enqueue_scripts', [$this, 'register_assets']);
+
+        // AJAX for load more pagination
+        add_action('wp_ajax_io_load_more', [$this, 'ajax_load_more']);
+        add_action('wp_ajax_nopriv_io_load_more', [$this, 'ajax_load_more']);
     }
+
 
     public function register_taxonomies()
     {
@@ -36,7 +41,7 @@ class Image_Organizer_Gallery
 
     public function register_assets()
     {
-        $version = '1.0.0';
+        $version = '1.1.0';
 
         wp_register_style(
             'image-organizer-frontend',
@@ -52,7 +57,17 @@ class Image_Organizer_Gallery
             $version,
             true
         );
+
+        wp_localize_script(
+            'image-organizer-frontend',
+            'ImageOrganizerData',
+            [
+                'ajax_url' => admin_url('admin-ajax.php'),
+                'nonce'    => wp_create_nonce('io_load_more'),
+            ]
+        );
     }
+
 
     /**
      * Shortcode: [image_organizer ids="1,2,3" columns="4" limit="12"]
@@ -63,11 +78,11 @@ class Image_Organizer_Gallery
             [
                 'ids'             => '',
                 'columns'         => 4,
-                'limit'           => 12,
-                'categories'      => '', // category slugs
-                'tags'            => '', // tag slugs
+                'limit'           => 12,          // per-page
+                'categories'      => '',          // category slugs
+                'tags'            => '',          // tag slugs
                 'show_filter'     => 'false',
-                'filter_taxonomy' => 'category', // 'category' or 'tag'
+                'filter_taxonomy' => 'category',  // 'category' or 'tag'
             ],
             $atts,
             'image_organizer'
@@ -76,27 +91,27 @@ class Image_Organizer_Gallery
         wp_enqueue_style('image-organizer-frontend');
         wp_enqueue_script('image-organizer-frontend');
 
-        $ids = array_filter(array_map('trim', explode(',', $atts['ids'])));
+        $ids      = array_filter(array_map('trim', explode(',', $atts['ids'])));
+        $per_page = max(1, intval($atts['limit']));
 
         $args = [
             'post_type'      => 'attachment',
             'post_status'    => 'inherit',
             'post_mime_type' => 'image',
-            'posts_per_page' => intval($atts['limit']),
+            'posts_per_page' => $per_page,
             'orderby'        => 'date',
             'order'          => 'DESC',
+            'paged'          => 1,
         ];
 
         if (! empty($ids)) {
-            $args['post__in']       = $ids;
-            $args['posts_per_page'] = -1;
-            $args['orderby']        = 'post__in';
+            $args['post__in'] = $ids;
+            $args['orderby']  = 'post__in';
         }
 
-        // Tax query based on categories/tags
+        // Tax query (categories/tags)
         $tax_query = [];
 
-        // Categories
         if (! empty($atts['categories'])) {
             $category_slugs = array_filter(array_map('trim', explode(',', $atts['categories'])));
             if (! empty($category_slugs)) {
@@ -108,7 +123,6 @@ class Image_Organizer_Gallery
             }
         }
 
-        // Tags
         if (! empty($atts['tags'])) {
             $tag_slugs = array_filter(array_map('trim', explode(',', $atts['tags'])));
             if (! empty($tag_slugs)) {
@@ -121,7 +135,6 @@ class Image_Organizer_Gallery
         }
 
         if (! empty($tax_query)) {
-            // If there are multiple conditions, require all by default.
             if (count($tax_query) > 1) {
                 $tax_query['relation'] = 'AND';
             }
@@ -140,7 +153,7 @@ class Image_Organizer_Gallery
         $show_filter     = filter_var($atts['show_filter'], FILTER_VALIDATE_BOOLEAN);
         $filter_taxonomy = ('tag' === strtolower($atts['filter_taxonomy'])) ? 'post_tag' : 'category';
 
-        // Get terms used by the queried attachments for the filter bar
+        // Collect terms for filter bar (based on first page)
         $filter_terms = [];
         if ($show_filter) {
             $attachment_ids = wp_list_pluck($query->posts, 'ID');
@@ -158,10 +171,24 @@ class Image_Organizer_Gallery
             }
         }
 
+        // Pagination info
+        $max_pages = (int) $query->max_num_pages;
+        $has_more  = $max_pages > 1;
+
         ob_start();
 ?>
 
-        <div class="io-gallery-wrapper">
+        <div
+            class="io-gallery-wrapper"
+            data-io-per-page="<?php echo esc_attr($per_page); ?>"
+            data-io-columns="<?php echo esc_attr($columns); ?>"
+            data-io-categories="<?php echo esc_attr($atts['categories']); ?>"
+            data-io-tags="<?php echo esc_attr($atts['tags']); ?>"
+            data-io-filter-taxonomy="<?php echo esc_attr($filter_taxonomy); ?>"
+            data-io-show-filter="<?php echo $show_filter ? 'true' : 'false'; ?>"
+            data-io-ids="<?php echo esc_attr(implode(',', $ids)); ?>"
+            data-io-max-pages="<?php echo esc_attr($max_pages); ?>"
+            data-io-current-page="1">
 
             <?php if ($show_filter && ! empty($filter_terms)) : ?>
                 <div class="io-filters" data-io-taxonomy="<?php echo esc_attr($filter_taxonomy); ?>">
@@ -199,8 +226,7 @@ class Image_Organizer_Gallery
                     );
                     $download_url    = wp_get_attachment_url($attachment_id);
 
-                    // Terms for this item for the active filter taxonomy
-                    $item_terms      = [];
+                    $item_terms = [];
                     if ($show_filter && $filter_taxonomy) {
                         $item_terms_ids = wp_get_post_terms(
                             $attachment_id,
@@ -236,7 +262,15 @@ class Image_Organizer_Gallery
                 <?php wp_reset_postdata(); ?>
             </div>
 
-            <!-- Modal container (once per page) -->
+            <?php if ($has_more) : ?>
+                <div class="io-pagination">
+                    <button type="button" class="io-load-more" data-io-page="1">
+                        <?php esc_html_e('Load more', 'image-organizer'); ?>
+                    </button>
+                </div>
+            <?php endif; ?>
+
+            <!-- Modal (once per gallery) -->
             <div class="io-modal" id="io-modal" aria-hidden="true" role="dialog" aria-modal="true">
                 <div class="io-modal-backdrop"></div>
                 <div class="io-modal-dialog" role="document">
@@ -257,9 +291,153 @@ class Image_Organizer_Gallery
             </div>
 
         </div>
-<?php
+        <?php
 
         return ob_get_clean();
+    }
+
+    public function ajax_load_more()
+    {
+        if (! isset($_POST['nonce']) || ! wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['nonce'])), 'io_load_more')) {
+            wp_send_json_error(['message' => 'Invalid nonce'], 400);
+        }
+
+        $page            = isset($_POST['page']) ? max(1, intval($_POST['page'])) : 1;
+        $per_page        = isset($_POST['per_page']) ? max(1, intval($_POST['per_page'])) : 12;
+        $columns         = isset($_POST['columns']) ? max(1, min(6, intval($_POST['columns']))) : 4;
+        $categories      = isset($_POST['categories']) ? sanitize_text_field(wp_unslash($_POST['categories'])) : '';
+        $tags            = isset($_POST['tags']) ? sanitize_text_field(wp_unslash($_POST['tags'])) : '';
+        $filter_taxonomy = isset($_POST['filter_taxonomy']) && 'tag' === strtolower($_POST['filter_taxonomy']) ? 'post_tag' : 'category';
+        $show_filter     = ! empty($_POST['show_filter']) && 'true' === $_POST['show_filter'];
+        $ids_raw         = isset($_POST['ids']) ? sanitize_text_field(wp_unslash($_POST['ids'])) : '';
+        $ids             = array_filter(array_map('trim', explode(',', $ids_raw)));
+
+        $args = [
+            'post_type'      => 'attachment',
+            'post_status'    => 'inherit',
+            'post_mime_type' => 'image',
+            'posts_per_page' => $per_page,
+            'orderby'        => 'date',
+            'order'          => 'DESC',
+            'paged'          => $page,
+        ];
+
+        if (! empty($ids)) {
+            $args['post__in'] = $ids;
+            $args['orderby']  = 'post__in';
+        }
+
+        $tax_query = [];
+
+        if (! empty($categories)) {
+            $category_slugs = array_filter(array_map('trim', explode(',', $categories)));
+            if (! empty($category_slugs)) {
+                $tax_query[] = [
+                    'taxonomy' => 'category',
+                    'field'    => 'slug',
+                    'terms'    => $category_slugs,
+                ];
+            }
+        }
+
+        if (! empty($tags)) {
+            $tag_slugs = array_filter(array_map('trim', explode(',', $tags)));
+            if (! empty($tag_slugs)) {
+                $tax_query[] = [
+                    'taxonomy' => 'post_tag',
+                    'field'    => 'slug',
+                    'terms'    => $tag_slugs,
+                ];
+            }
+        }
+
+        if (! empty($tax_query)) {
+            if (count($tax_query) > 1) {
+                $tax_query['relation'] = 'AND';
+            }
+            $args['tax_query'] = $tax_query;
+        }
+
+        $query = new WP_Query($args);
+
+        if (! $query->have_posts()) {
+            wp_send_json_success(
+                [
+                    'html'     => '',
+                    'has_more' => false,
+                    'next_page' => null,
+                ]
+            );
+        }
+
+        ob_start();
+
+        while ($query->have_posts()) :
+            $query->the_post();
+            $attachment_id   = get_the_ID();
+            $title           = get_the_title($attachment_id);
+            $caption         = wp_get_attachment_caption($attachment_id);
+            $description     = get_post_field('post_content', $attachment_id);
+            $alt             = get_post_meta($attachment_id, '_wp_attachment_image_alt', true);
+            $image_src       = wp_get_attachment_image_src($attachment_id, 'large');
+            $thumb_html      = wp_get_attachment_image(
+                $attachment_id,
+                'medium',
+                false,
+                [
+                    'class' => 'io-gallery-thumb',
+                ]
+            );
+            $download_url    = wp_get_attachment_url($attachment_id);
+
+            $item_terms = [];
+            if ($show_filter && $filter_taxonomy) {
+                $item_terms_ids = wp_get_post_terms(
+                    $attachment_id,
+                    $filter_taxonomy,
+                    ['fields' => 'ids']
+                );
+                if (! is_wp_error($item_terms_ids) && ! empty($item_terms_ids)) {
+                    foreach ($item_terms_ids as $term_id) {
+                        $item_terms[] = 'term-' . $term_id;
+                    }
+                }
+            }
+
+            $item_terms_attr = ! empty($item_terms) ? implode(' ', $item_terms) : '';
+        ?>
+            <div class="io-gallery-item"
+                <?php if ($show_filter) : ?>
+                data-io-terms="<?php echo esc_attr($item_terms_attr); ?>"
+                <?php endif; ?>>
+                <button
+                    class="io-gallery-trigger"
+                    type="button"
+                    data-io-title="<?php echo esc_attr($title); ?>"
+                    data-io-caption="<?php echo esc_attr($caption); ?>"
+                    data-io-description="<?php echo esc_attr(wp_strip_all_tags($description)); ?>"
+                    data-io-alt="<?php echo esc_attr($alt); ?>"
+                    data-io-src="<?php echo esc_url($image_src ? $image_src[0] : $download_url); ?>"
+                    data-io-download="<?php echo esc_url($download_url); ?>">
+                    <?php echo $thumb_html; ?>
+                </button>
+            </div>
+<?php
+        endwhile;
+        wp_reset_postdata();
+
+        $html      = ob_get_clean();
+        $max_pages = (int) $query->max_num_pages;
+        $has_more  = $page < $max_pages;
+        $next_page = $has_more ? $page + 1 : null;
+
+        wp_send_json_success(
+            [
+                'html'      => $html,
+                'has_more'  => $has_more,
+                'next_page' => $next_page,
+            ]
+        );
     }
 }
 
