@@ -12,13 +12,13 @@ jQuery(function ($) {
             return;
         }
 
-        var $dialog      = $modal.find('.io-modal-dialog');
-        var $image       = $modal.find('.io-modal-image');
-        var $title       = $modal.find('.io-modal-title');
-        var $caption     = $modal.find('.io-modal-caption');
+        var $dialog = $modal.find('.io-modal-dialog');
+        var $image = $modal.find('.io-modal-image');
+        var $title = $modal.find('.io-modal-title');
+        var $caption = $modal.find('.io-modal-caption');
         var $description = $modal.find('.io-modal-description');
-        var $alt         = $modal.find('.io-modal-alt');
-        var $download    = $modal.find('.io-modal-download');
+        var $alt = $modal.find('.io-modal-alt');
+        var $download = $modal.find('.io-modal-download');
 
         $image.attr('src', data.src || '');
         $image.attr('alt', data.alt || '');
@@ -78,7 +78,7 @@ jQuery(function ($) {
         }
 
         var first = $focusable[0];
-        var last  = $focusable[$focusable.length - 1];
+        var last = $focusable[$focusable.length - 1];
 
         if (e.shiftKey) {
             if (document.activeElement === first) {
@@ -100,16 +100,16 @@ jQuery(function ($) {
     // Open modal on image button click
     $(document).on('click', '.io-gallery-trigger', function (e) {
         e.preventDefault();
-        var $btn     = $(this);
+        var $btn = $(this);
         var $wrapper = $btn.closest('.io-gallery-wrapper');
 
         var data = {
-            title:       $btn.data('io-title'),
-            caption:     $btn.data('io-caption'),
+            title: $btn.data('io-title'),
+            caption: $btn.data('io-caption'),
             description: $btn.data('io-description'),
-            alt:         $btn.data('io-alt'),
-            src:         $btn.data('io-src'),
-            download:    $btn.data('io-download')
+            alt: $btn.data('io-alt'),
+            src: $btn.data('io-src'),
+            download: $btn.data('io-download')
         };
 
         openModal($wrapper, $btn, data);
@@ -140,8 +140,8 @@ jQuery(function ($) {
     // ------------------------------------
 
     $(document).on('click', '.io-filter-button', function () {
-        var $btn  = $(this);
-        var term  = $btn.data('io-term');
+        var $btn = $(this);
+        var term = $btn.data('io-term');
 
         $btn
             .addClass('io-filter-active')
@@ -151,7 +151,7 @@ jQuery(function ($) {
             .attr('aria-pressed', 'false');
 
         var $wrapper = $btn.closest('.io-gallery-wrapper');
-        var $items   = $wrapper.find('.io-gallery-item');
+        var $items = $wrapper.find('.io-gallery-item');
 
         if (term === 'all') {
             $items.show();
@@ -159,7 +159,7 @@ jQuery(function ($) {
         }
 
         $items.each(function () {
-            var $item     = $(this);
+            var $item = $(this);
             var itemTerms = ($item.data('io-terms') || '').toString().split(/\s+/);
 
             if (itemTerms.indexOf(term) !== -1) {
@@ -175,13 +175,13 @@ jQuery(function ($) {
     // ------------------------------------
 
     $(document).on('click', '.io-load-more', function () {
-        var $btn     = $(this);
+        var $btn = $(this);
         var $wrapper = $btn.closest('.io-gallery-wrapper');
         var $gallery = $wrapper.find('.io-gallery');
-        var $status  = $wrapper.find('.io-status');
+        var $status = $wrapper.find('.io-status');
 
         var currentPage = parseInt($wrapper.data('io-current-page'), 10) || 1;
-        var maxPages    = parseInt($wrapper.data('io-max-pages'), 10) || 1;
+        var maxPages = parseInt($wrapper.data('io-max-pages'), 10) || 1;
 
         if (currentPage >= maxPages) {
             $btn.remove();
@@ -194,16 +194,16 @@ jQuery(function ($) {
         $btn.prop('disabled', true).text('Loading...');
 
         var data = {
-            action:          'io_load_more',
-            nonce:           (typeof ImageOrganizerData !== 'undefined') ? ImageOrganizerData.nonce : '',
-            page:            currentPage + 1,
-            per_page:        $wrapper.data('io-per-page'),
-            columns:         $wrapper.data('io-columns'),
-            categories:      $wrapper.data('io-categories') || '',
-            tags:            $wrapper.data('io-tags') || '',
+            action: 'io_load_more',
+            nonce: (typeof ImageOrganizerData !== 'undefined') ? ImageOrganizerData.nonce : '',
+            page: currentPage + 1,
+            per_page: $wrapper.data('io-per-page'),
+            columns: $wrapper.data('io-columns'),
+            categories: $wrapper.data('io-categories') || '',
+            tags: $wrapper.data('io-tags') || '',
             filter_taxonomy: $wrapper.data('io-filter-taxonomy') || 'category',
-            show_filter:     $wrapper.data('io-show-filter') || 'false',
-            ids:             $wrapper.data('io-ids') || ''
+            show_filter: $wrapper.data('io-show-filter') || 'false',
+            ids: $wrapper.data('io-ids') || ''
         };
 
         $.post(ImageOrganizerData.ajax_url, data, function (response) {
@@ -219,7 +219,7 @@ jQuery(function ($) {
 
             if (html) {
                 // Count new items before appending for announcement
-                var $tmp     = $('<div>').html(html);
+                var $tmp = $('<div>').html(html);
                 var newCount = $tmp.find('.io-gallery-item').length;
 
                 $gallery.append(html);
@@ -242,4 +242,80 @@ jQuery(function ($) {
         });
     });
 
+    /**
+ * Copy the current modal alt text to the clipboard.
+ * @param {jQuery} $wrapper - The .io-gallery-wrapper for this instance.
+ */
+    function copyAltText($wrapper) {
+        var $modal = $wrapper.find('.io-modal');
+        var $alt = $modal.find('.io-modal-alt');
+        var text = $.trim($alt.text() || '');
+
+        if (!text) {
+            return;
+        }
+
+        var $status = $wrapper.find('.io-status');
+
+        function announce(message) {
+            if ($status.length) {
+                $status.text(message);
+            }
+        }
+
+        function fallbackCopy() {
+            var $temp = $('<textarea readonly></textarea>')
+                .css({
+                    position: 'absolute',
+                    left: '-9999px',
+                    top: '0'
+                })
+                .val(text)
+                .appendTo('body');
+
+            $temp[0].select();
+            try {
+                document.execCommand('copy');
+                announce('Alt text copied to clipboard.');
+            } catch (err) {
+                announce('Unable to copy alt text.');
+            }
+            $temp.remove();
+        }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text)
+                .then(function () {
+                    announce('Alt text copied to clipboard.');
+                })
+                .catch(function () {
+                    fallbackCopy();
+                });
+        } else {
+            fallbackCopy();
+        }
+    }
+
+    // --- Alt text copy handlers ---
+
+    // Click on alt text span
+    $(document).on('click', '.io-modal-alt', function () {
+        var $wrapper = $(this).closest('.io-gallery-wrapper');
+        copyAltText($wrapper);
+    });
+
+    // Keyboard support on alt text (Enter/Space)
+    $(document).on('keydown', '.io-modal-alt', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            var $wrapper = $(this).closest('.io-gallery-wrapper');
+            copyAltText($wrapper);
+        }
+    });
+
+    // Click on the copy icon/button
+    $(document).on('click', '.io-alt-copy-button', function () {
+        var $wrapper = $(this).closest('.io-gallery-wrapper');
+        copyAltText($wrapper);
+    });
 });

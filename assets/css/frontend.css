@@ -32,12 +32,29 @@
 }
 
 /* Column layouts */
-.io-columns-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
-.io-columns-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.io-columns-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.io-columns-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.io-columns-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-.io-columns-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.io-columns-1 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+.io-columns-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.io-columns-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.io-columns-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.io-columns-5 {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.io-columns-6 {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+}
 
 /* =========================
    Modal styling
@@ -71,7 +88,7 @@
     max-height: 90vh;
     overflow: auto;
     padding: 1.5rem;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
     z-index: 1;
     display: grid;
     gap: 1rem;
@@ -111,6 +128,37 @@
     color: inherit;
     background-color: #f7f7f7;
 }
+
+.io-modal-alt-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.io-modal-alt {
+    cursor: pointer;
+}
+
+.io-alt-copy-button {
+    border: 1px solid #999999;
+    background: #f7f7f7;
+    border-radius: 3px;
+    padding: 0.15rem 0.45rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+/* If your theme doesn’t define .screen-reader-text, you can include this: */
+.screen-reader-text {
+    position: absolute;
+    left: -9999px;
+    top: auto;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
 
 /* =========================
    Wrapper and filters
@@ -210,6 +258,7 @@
 /* If you add any transitions/animations later, this protects users who
    prefer reduced motion. Even now it’s harmless and future-proof. */
 @media (prefers-reduced-motion: reduce) {
+
     .io-modal,
     .io-modal-dialog,
     .io-gallery-item,

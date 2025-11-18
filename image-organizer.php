@@ -4,7 +4,7 @@
  * Plugin Name: Image Organizer Gallery
  * Plugin URI:  https://stillpixelstudios.com/
  * Description: Simple image organizer/gallery with metadata modal and download button.
- * Version:     1.1.1
+ * Version:     1.1.2
  * Author:      Ron Rattie
  * Text Domain: image-organizer
  * Requires at least: 6.0
@@ -188,7 +188,7 @@ class Image_Organizer_Gallery
         $has_more  = $max_pages > 1;
 
         ob_start();
-        ?>
+?>
 
         <div
             class="io-gallery-wrapper"
@@ -287,12 +287,12 @@ class Image_Organizer_Gallery
                             implode(' – ', $button_label_parts)
                         )
                         : __('View image details', 'image-organizer');
-                    ?>
+                ?>
                     <div
                         class="io-gallery-item"
                         role="listitem"
                         <?php if ($show_filter) : ?>
-                            data-io-terms="<?php echo esc_attr($item_terms_attr); ?>"
+                        data-io-terms="<?php echo esc_attr($item_terms_attr); ?>"
                         <?php endif; ?>>
                         <button
                             class="io-gallery-trigger"
@@ -357,10 +357,40 @@ class Image_Organizer_Gallery
                         <div id="<?php echo esc_attr($modal_desc_wrapper); ?>" class="io-modal-desc-wrapper">
                             <p class="io-modal-caption"></p>
                             <p class="io-modal-description"></p>
-                            <p>
+                            <p class="io-modal-alt-row">
                                 <strong><?php esc_html_e('Alt text:', 'image-organizer'); ?></strong>
-                                <span class="io-modal-alt"></span>
+
+                                <!-- Clickable alt text (for mouse & keyboard) -->
+                                <span
+                                    class="io-modal-alt"
+                                    role="button"
+                                    tabindex="0"
+                                    aria-describedby="<?php echo esc_attr($gallery_id); ?>-alt-copy-help">
+                                </span>
+
+                                <!-- Dedicated copy icon/button -->
+                                <button
+                                    type="button"
+                                    class="io-alt-copy-button"
+                                    aria-label="<?php esc_attr_e('Copy alt text to clipboard', 'image-organizer'); ?>">
+                                    📋
+                                </button>
                             </p>
+
+                            <span
+                                id="<?php echo esc_attr($gallery_id); ?>-alt-copy-help"
+                                class="screen-reader-text">
+                                <?php esc_html_e('Press Enter or Space to copy the alt text to the clipboard.', 'image-organizer'); ?>
+                            </span>
+
+                            <a
+                                class="io-modal-download"
+                                id="<?php echo esc_attr($gallery_id); ?>-modal-download"
+                                href="#"
+                                download>
+                                <?php esc_html_e('Download image', 'image-organizer'); ?>
+                            </a>
+
                         </div>
                         <a
                             class="io-modal-download"
@@ -506,12 +536,12 @@ class Image_Organizer_Gallery
                     implode(' – ', $button_label_parts)
                 )
                 : __('View image details', 'image-organizer');
-            ?>
+        ?>
             <div
                 class="io-gallery-item"
                 role="listitem"
                 <?php if ($show_filter) : ?>
-                    data-io-terms="<?php echo esc_attr($item_terms_attr); ?>"
+                data-io-terms="<?php echo esc_attr($item_terms_attr); ?>"
                 <?php endif; ?>>
                 <button
                     class="io-gallery-trigger"
@@ -526,7 +556,7 @@ class Image_Organizer_Gallery
                     <?php echo $thumb_html; ?>
                 </button>
             </div>
-            <?php
+<?php
         endwhile;
         wp_reset_postdata();
 
