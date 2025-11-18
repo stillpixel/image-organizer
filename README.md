@@ -1,6 +1,6 @@
 # Image Organizer Gallery
 
-**Version:** 1.1.0  
+**Version:** 1.1.1 
 **Requires at least:** WordPress 6.0+  
 **Tested up to:** WordPress 6.8.x  
 **Requires PHP:** 7.4+  
