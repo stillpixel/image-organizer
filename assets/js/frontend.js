@@ -12,13 +12,13 @@ jQuery(function ($) {
             return;
         }
 
-        var $dialog = $modal.find('.io-modal-dialog');
-        var $image = $modal.find('.io-modal-image');
-        var $title = $modal.find('.io-modal-title');
-        var $caption = $modal.find('.io-modal-caption');
+        var $dialog      = $modal.find('.io-modal-dialog');
+        var $image       = $modal.find('.io-modal-image');
+        var $title       = $modal.find('.io-modal-title');
+        var $caption     = $modal.find('.io-modal-caption');
         var $description = $modal.find('.io-modal-description');
-        var $alt = $modal.find('.io-modal-alt');
-        var $download = $modal.find('.io-modal-download');
+        var $alt         = $modal.find('.io-modal-alt');
+        var $download    = $modal.find('.io-modal-download');
 
         $image.attr('src', data.src || '');
         $image.attr('alt', data.alt || '');
@@ -28,13 +28,12 @@ jQuery(function ($) {
         $alt.text(data.alt || '');
         $download.attr('href', data.download || '#');
 
-        // Remember last focused element to restore focus on close
+        // Remember last focused element to restore on close
         $modal.data('io-last-focus', $trigger);
 
         $modal.addClass('io-open').attr('aria-hidden', 'false');
         $('body').addClass('io-modal-open');
 
-        // Move focus into dialog for screen readers & keyboard users
         if ($dialog.length) {
             $dialog.trigger('focus');
         }
@@ -78,7 +77,7 @@ jQuery(function ($) {
         }
 
         var first = $focusable[0];
-        var last = $focusable[$focusable.length - 1];
+        var last  = $focusable[$focusable.length - 1];
 
         if (e.shiftKey) {
             if (document.activeElement === first) {
@@ -93,163 +92,14 @@ jQuery(function ($) {
         }
     }
 
-    // ------------------------------------
-    // Modal open/close behavior
-    // ------------------------------------
-
-    // Open modal on image button click
-    $(document).on('click', '.io-gallery-trigger', function (e) {
-        e.preventDefault();
-        var $btn = $(this);
-        var $wrapper = $btn.closest('.io-gallery-wrapper');
-
-        var data = {
-            title: $btn.data('io-title'),
-            caption: $btn.data('io-caption'),
-            description: $btn.data('io-description'),
-            alt: $btn.data('io-alt'),
-            src: $btn.data('io-src'),
-            download: $btn.data('io-download')
-        };
-
-        openModal($wrapper, $btn, data);
-    });
-
-    // Close modal when clicking close button or backdrop
-    $(document).on('click', '.io-modal-close, .io-modal-backdrop', function () {
-        var $modal = $(this).closest('.io-modal');
-        closeModal($modal);
-    });
-
-    // ESC to close any open modal
-    $(document).on('keyup', function (e) {
-        if (e.key === 'Escape') {
-            $('.io-modal.io-open').each(function () {
-                closeModal($(this));
-            });
-        }
-    });
-
-    // Trap focus inside open modal dialog
-    $(document).on('keydown', '.io-modal.io-open .io-modal-dialog', function (e) {
-        trapFocus(e, $(this));
-    });
-
-    // ------------------------------------
-    // Filter buttons (with aria-pressed)
-    // ------------------------------------
-
-    $(document).on('click', '.io-filter-button', function () {
-        var $btn = $(this);
-        var term = $btn.data('io-term');
-
-        $btn
-            .addClass('io-filter-active')
-            .attr('aria-pressed', 'true')
-            .siblings('.io-filter-button')
-            .removeClass('io-filter-active')
-            .attr('aria-pressed', 'false');
-
-        var $wrapper = $btn.closest('.io-gallery-wrapper');
-        var $items = $wrapper.find('.io-gallery-item');
-
-        if (term === 'all') {
-            $items.show();
-            return;
-        }
-
-        $items.each(function () {
-            var $item = $(this);
-            var itemTerms = ($item.data('io-terms') || '').toString().split(/\s+/);
-
-            if (itemTerms.indexOf(term) !== -1) {
-                $item.show();
-            } else {
-                $item.hide();
-            }
-        });
-    });
-
-    // ------------------------------------
-    // Load more + live region updates
-    // ------------------------------------
-
-    $(document).on('click', '.io-load-more', function () {
-        var $btn = $(this);
-        var $wrapper = $btn.closest('.io-gallery-wrapper');
-        var $gallery = $wrapper.find('.io-gallery');
-        var $status = $wrapper.find('.io-status');
-
-        var currentPage = parseInt($wrapper.data('io-current-page'), 10) || 1;
-        var maxPages = parseInt($wrapper.data('io-max-pages'), 10) || 1;
-
-        if (currentPage >= maxPages) {
-            $btn.remove();
-            if ($status.length) {
-                $status.text('No more images to load.');
-            }
-            return;
-        }
-
-        $btn.prop('disabled', true).text('Loading...');
-
-        var data = {
-            action: 'io_load_more',
-            nonce: (typeof ImageOrganizerData !== 'undefined') ? ImageOrganizerData.nonce : '',
-            page: currentPage + 1,
-            per_page: $wrapper.data('io-per-page'),
-            columns: $wrapper.data('io-columns'),
-            categories: $wrapper.data('io-categories') || '',
-            tags: $wrapper.data('io-tags') || '',
-            filter_taxonomy: $wrapper.data('io-filter-taxonomy') || 'category',
-            show_filter: $wrapper.data('io-show-filter') || 'false',
-            ids: $wrapper.data('io-ids') || ''
-        };
-
-        $.post(ImageOrganizerData.ajax_url, data, function (response) {
-            if (!response || !response.success) {
-                $btn.prop('disabled', false).text('Load more');
-                if ($status.length) {
-                    $status.text('Error loading images.');
-                }
-                return;
-            }
-
-            var html = response.data && response.data.html ? response.data.html : '';
-
-            if (html) {
-                // Count new items before appending for announcement
-                var $tmp = $('<div>').html(html);
-                var newCount = $tmp.find('.io-gallery-item').length;
-
-                $gallery.append(html);
-
-                if ($status.length && newCount > 0) {
-                    $status.text(newCount === 1 ? '1 image loaded.' : newCount + ' images loaded.');
-                }
-            }
-
-            if (response.data && response.data.has_more) {
-                var nextPage = response.data.next_page || currentPage + 1;
-                $wrapper.data('io-current-page', nextPage);
-                $btn.prop('disabled', false).text('Load more');
-            } else {
-                $btn.remove();
-                if ($status.length) {
-                    $status.text('No more images to load.');
-                }
-            }
-        });
-    });
-
     /**
- * Copy the current modal alt text to the clipboard.
- * @param {jQuery} $wrapper - The .io-gallery-wrapper for this instance.
- */
+     * Copy the current modal alt text to the clipboard.
+     * @param {jQuery} $wrapper - The .io-gallery-wrapper for this instance.
+     */
     function copyAltText($wrapper) {
         var $modal = $wrapper.find('.io-modal');
-        var $alt = $modal.find('.io-modal-alt');
-        var text = $.trim($alt.text() || '');
+        var $alt   = $modal.find('.io-modal-alt');
+        var text   = $.trim($alt.text() || '');
 
         if (!text) {
             return;
@@ -296,15 +146,104 @@ jQuery(function ($) {
         }
     }
 
-    // --- Alt text copy handlers ---
+    /**
+     * Apply combined taxonomy + text search filtering to items in this wrapper.
+     * - Taxonomy filter is controlled by .io-filter-button.io-filter-active (if enabled).
+     * - Text filter is from .io-text-filter-input (matches title, caption, description).
+     * @param {jQuery} $wrapper
+     */
+    function applyCombinedFilter($wrapper) {
+        var showFilter = String($wrapper.data('io-show-filter')) === 'true';
+        var $search    = $wrapper.find('.io-text-filter-input');
+        var query      = ($search.val() || '').toString().toLowerCase().trim();
 
-    // Click on alt text span
+        var activeTerm = 'all';
+        if (showFilter) {
+            var $active = $wrapper.find('.io-filter-button.io-filter-active').first();
+            if ($active.length) {
+                activeTerm = $active.data('io-term') || 'all';
+            }
+        }
+
+        var $items = $wrapper.find('.io-gallery-item');
+
+        $items.each(function () {
+            var $item = $(this);
+            var $btn  = $item.find('.io-gallery-trigger').first();
+
+            // Taxonomy match
+            var passesTax = true;
+            if (showFilter) {
+                var itemTermsRaw = ($item.data('io-terms') || '').toString();
+                var itemTerms    = itemTermsRaw.length ? itemTermsRaw.split(/\s+/) : [];
+                if (activeTerm !== 'all') {
+                    passesTax = itemTerms.indexOf(activeTerm) !== -1;
+                }
+            }
+
+            // Text/title/description match
+            var title   = ($btn.data('io-title') || '').toString();
+            var caption = ($btn.data('io-caption') || '').toString();
+            var desc    = ($btn.data('io-description') || '').toString();
+
+            var haystack = (title + ' ' + caption + ' ' + desc).toLowerCase();
+            var passesSearch = !query || haystack.indexOf(query) !== -1;
+
+            if (passesTax && passesSearch) {
+                $item.show();
+            } else {
+                $item.hide();
+            }
+        });
+    }
+
+    // ------------------------------------
+    // Modal open/close behavior
+    // ------------------------------------
+
+    $(document).on('click', '.io-gallery-trigger', function (e) {
+        e.preventDefault();
+        var $btn     = $(this);
+        var $wrapper = $btn.closest('.io-gallery-wrapper');
+
+        var data = {
+            title:       $btn.data('io-title'),
+            caption:     $btn.data('io-caption'),
+            description: $btn.data('io-description'),
+            alt:         $btn.data('io-alt'),
+            src:         $btn.data('io-src'),
+            download:    $btn.data('io-download')
+        };
+
+        openModal($wrapper, $btn, data);
+    });
+
+    $(document).on('click', '.io-modal-close, .io-modal-backdrop', function () {
+        var $modal = $(this).closest('.io-modal');
+        closeModal($modal);
+    });
+
+    $(document).on('keyup', function (e) {
+        if (e.key === 'Escape') {
+            $('.io-modal.io-open').each(function () {
+                closeModal($(this));
+            });
+        }
+    });
+
+    $(document).on('keydown', '.io-modal.io-open .io-modal-dialog', function (e) {
+        trapFocus(e, $(this));
+    });
+
+    // ------------------------------------
+    // Alt text copy handlers
+    // ------------------------------------
+
     $(document).on('click', '.io-modal-alt', function () {
         var $wrapper = $(this).closest('.io-gallery-wrapper');
         copyAltText($wrapper);
     });
 
-    // Keyboard support on alt text (Enter/Space)
     $(document).on('keydown', '.io-modal-alt', function (e) {
         if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
@@ -313,9 +252,110 @@ jQuery(function ($) {
         }
     });
 
-    // Click on the copy icon/button
     $(document).on('click', '.io-alt-copy-button', function () {
         var $wrapper = $(this).closest('.io-gallery-wrapper');
         copyAltText($wrapper);
     });
+
+    // ------------------------------------
+    // Taxonomy filter buttons
+    // ------------------------------------
+
+    $(document).on('click', '.io-filter-button', function () {
+        var $btn     = $(this);
+        var $wrapper = $btn.closest('.io-gallery-wrapper');
+
+        $btn
+            .addClass('io-filter-active')
+            .attr('aria-pressed', 'true')
+            .siblings('.io-filter-button')
+            .removeClass('io-filter-active')
+            .attr('aria-pressed', 'false');
+
+        applyCombinedFilter($wrapper);
+    });
+
+    // ------------------------------------
+    // Text search filter (title/description)
+    // ------------------------------------
+
+    $(document).on('input', '.io-text-filter-input', function () {
+        var $wrapper = $(this).closest('.io-gallery-wrapper');
+        applyCombinedFilter($wrapper);
+    });
+
+    // ------------------------------------
+    // Load more + live region updates
+    // ------------------------------------
+
+    $(document).on('click', '.io-load-more', function () {
+        var $btn     = $(this);
+        var $wrapper = $btn.closest('.io-gallery-wrapper');
+        var $gallery = $wrapper.find('.io-gallery');
+        var $status  = $wrapper.find('.io-status');
+
+        var currentPage = parseInt($wrapper.data('io-current-page'), 10) || 1;
+        var maxPages    = parseInt($wrapper.data('io-max-pages'), 10) || 1;
+
+        if (currentPage >= maxPages) {
+            $btn.remove();
+            if ($status.length) {
+                $status.text('No more images to load.');
+            }
+            return;
+        }
+
+        $btn.prop('disabled', true).text('Loading...');
+
+        var data = {
+            action:          'io_load_more',
+            nonce:           (typeof ImageOrganizerData !== 'undefined') ? ImageOrganizerData.nonce : '',
+            page:            currentPage + 1,
+            per_page:        $wrapper.data('io-per-page'),
+            columns:         $wrapper.data('io-columns'),
+            categories:      $wrapper.data('io-categories') || '',
+            tags:            $wrapper.data('io-tags') || '',
+            filter_taxonomy: $wrapper.data('io-filter-taxonomy') || 'category',
+            show_filter:     $wrapper.data('io-show-filter') || 'false',
+            ids:             $wrapper.data('io-ids') || ''
+        };
+
+        $.post(ImageOrganizerData.ajax_url, data, function (response) {
+            if (!response || !response.success) {
+                $btn.prop('disabled', false).text('Load more');
+                if ($status.length) {
+                    $status.text('Error loading images.');
+                }
+                return;
+            }
+
+            var html = response.data && response.data.html ? response.data.html : '';
+
+            if (html) {
+                var $tmp     = $('<div>').html(html);
+                var newCount = $tmp.find('.io-gallery-item').length;
+
+                $gallery.append(html);
+
+                // Re-apply combined filter so new items respect current search+taxonomy
+                applyCombinedFilter($wrapper);
+
+                if ($status.length && newCount > 0) {
+                    $status.text(newCount === 1 ? '1 image loaded.' : newCount + ' images loaded.');
+                }
+            }
+
+            if (response.data && response.data.has_more) {
+                var nextPage = response.data.next_page || currentPage + 1;
+                $wrapper.data('io-current-page', nextPage);
+                $btn.prop('disabled', false).text('Load more');
+            } else {
+                $btn.remove();
+                if ($status.length) {
+                    $status.text('No more images to load.');
+                }
+            }
+        });
+    });
+
 });
