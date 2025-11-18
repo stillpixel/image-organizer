@@ -1,5 +1,8 @@
 jQuery(function ($) {
 
+    // Track the most recent text-search request to avoid stale AJAX overwrites
+    var ioSearchRequestId = 0;
+
     /**
      * Open a modal within a specific gallery wrapper.
      * @param {jQuery} $wrapper
@@ -12,13 +15,13 @@ jQuery(function ($) {
             return;
         }
 
-        var $dialog      = $modal.find('.io-modal-dialog');
-        var $image       = $modal.find('.io-modal-image');
-        var $title       = $modal.find('.io-modal-title');
-        var $caption     = $modal.find('.io-modal-caption');
+        var $dialog = $modal.find('.io-modal-dialog');
+        var $image = $modal.find('.io-modal-image');
+        var $title = $modal.find('.io-modal-title');
+        var $caption = $modal.find('.io-modal-caption');
         var $description = $modal.find('.io-modal-description');
-        var $alt         = $modal.find('.io-modal-alt');
-        var $download    = $modal.find('.io-modal-download');
+        var $alt = $modal.find('.io-modal-alt');
+        var $download = $modal.find('.io-modal-download');
 
         $image.attr('src', data.src || '');
         $image.attr('alt', data.alt || '');
@@ -77,7 +80,7 @@ jQuery(function ($) {
         }
 
         var first = $focusable[0];
-        var last  = $focusable[$focusable.length - 1];
+        var last = $focusable[$focusable.length - 1];
 
         if (e.shiftKey) {
             if (document.activeElement === first) {
@@ -98,8 +101,8 @@ jQuery(function ($) {
      */
     function copyAltText($wrapper) {
         var $modal = $wrapper.find('.io-modal');
-        var $alt   = $modal.find('.io-modal-alt');
-        var text   = $.trim($alt.text() || '');
+        var $alt = $modal.find('.io-modal-alt');
+        var text = $.trim($alt.text() || '');
 
         if (!text) {
             return;
@@ -154,8 +157,8 @@ jQuery(function ($) {
      */
     function applyCombinedFilter($wrapper) {
         var showFilter = String($wrapper.data('io-show-filter')) === 'true';
-        var $search    = $wrapper.find('.io-text-filter-input');
-        var query      = ($search.val() || '').toString().toLowerCase().trim();
+        var $search = $wrapper.find('.io-text-filter-input');
+        var query = ($search.val() || '').toString().toLowerCase().trim();
 
         var activeTerm = 'all';
         if (showFilter) {
@@ -169,22 +172,22 @@ jQuery(function ($) {
 
         $items.each(function () {
             var $item = $(this);
-            var $btn  = $item.find('.io-gallery-trigger').first();
+            var $btn = $item.find('.io-gallery-trigger').first();
 
             // Taxonomy match
             var passesTax = true;
             if (showFilter) {
                 var itemTermsRaw = ($item.data('io-terms') || '').toString();
-                var itemTerms    = itemTermsRaw.length ? itemTermsRaw.split(/\s+/) : [];
+                var itemTerms = itemTermsRaw.length ? itemTermsRaw.split(/\s+/) : [];
                 if (activeTerm !== 'all') {
                     passesTax = itemTerms.indexOf(activeTerm) !== -1;
                 }
             }
 
             // Text/title/description match
-            var title   = ($btn.data('io-title') || '').toString();
+            var title = ($btn.data('io-title') || '').toString();
             var caption = ($btn.data('io-caption') || '').toString();
-            var desc    = ($btn.data('io-description') || '').toString();
+            var desc = ($btn.data('io-description') || '').toString();
 
             var haystack = (title + ' ' + caption + ' ' + desc).toLowerCase();
             var passesSearch = !query || haystack.indexOf(query) !== -1;
@@ -203,16 +206,16 @@ jQuery(function ($) {
 
     $(document).on('click', '.io-gallery-trigger', function (e) {
         e.preventDefault();
-        var $btn     = $(this);
+        var $btn = $(this);
         var $wrapper = $btn.closest('.io-gallery-wrapper');
 
         var data = {
-            title:       $btn.data('io-title'),
-            caption:     $btn.data('io-caption'),
+            title: $btn.data('io-title'),
+            caption: $btn.data('io-caption'),
             description: $btn.data('io-description'),
-            alt:         $btn.data('io-alt'),
-            src:         $btn.data('io-src'),
-            download:    $btn.data('io-download')
+            alt: $btn.data('io-alt'),
+            src: $btn.data('io-src'),
+            download: $btn.data('io-download')
         };
 
         openModal($wrapper, $btn, data);
@@ -262,7 +265,7 @@ jQuery(function ($) {
     // ------------------------------------
 
     $(document).on('click', '.io-filter-button', function () {
-        var $btn     = $(this);
+        var $btn = $(this);
         var $wrapper = $btn.closest('.io-gallery-wrapper');
 
         $btn
@@ -276,12 +279,92 @@ jQuery(function ($) {
     });
 
     // ------------------------------------
-    // Text search filter (title/description)
+    // Text search filter (title/description) using server-side search
     // ------------------------------------
 
     $(document).on('input', '.io-text-filter-input', function () {
+        var $input    = $(this);
+        var $wrapper  = $input.closest('.io-gallery-wrapper');
+        var $gallery  = $wrapper.find('.io-gallery');
+        var $status   = $wrapper.find('.io-status');
+        var $loadMore = $wrapper.find('.io-load-more');
+
+        var query = ($input.val() || '').toString();
+
+        // Increment global request ID and capture this one
+        ioSearchRequestId++;
+        var thisRequestId = ioSearchRequestId;
+
+        var data = {
+            action:          'io_search_images',
+            nonce:           (typeof ImageOrganizerData !== 'undefined') ? ImageOrganizerData.nonce : '',
+            search:          query,
+            categories:      $wrapper.data('io-categories') || '',
+            tags:            $wrapper.data('io-tags') || '',
+            filter_taxonomy: $wrapper.data('io-filter-taxonomy') || 'category',
+            show_filter:     $wrapper.data('io-show-filter') || 'false',
+            ids:             $wrapper.data('io-ids') || ''
+        };
+
+        $.post(ImageOrganizerData.ajax_url, data, function (response) {
+            // Ignore stale responses (if a newer request was fired)
+            if (thisRequestId !== ioSearchRequestId) {
+                return;
+            }
+
+            if (!response || !response.success) {
+                if ($status.length) {
+                    $status.text('Error filtering images.');
+                }
+                return;
+            }
+
+            var html = response.data && response.data.html ? response.data.html : '';
+            $gallery.html(html);
+
+            // Once we are in "search" mode, disable pagination for this view
+            if ($loadMore.length) {
+                $loadMore.remove();
+            }
+
+            if ($status.length) {
+                var $tmp   = $('<div>').html(html);
+                var count  = $tmp.find('.io-gallery-item').length;
+                var qTrim  = query.trim();
+
+                if (qTrim === '') {
+                    $status.text(
+                        count === 1
+                            ? 'Showing all 1 image.'
+                            : 'Showing all ' + count + ' images.'
+                    );
+                } else {
+                    $status.text(
+                        count === 1
+                            ? '1 image matches your search.'
+                            : count + ' images match your search.'
+                    );
+                }
+            }
+        });
+    });
+
+    // Clear search: reset the gallery back to its original state
+    $(document).on('click', '.io-text-filter-clear', function () {
         var $wrapper = $(this).closest('.io-gallery-wrapper');
-        applyCombinedFilter($wrapper);
+        var $input = $wrapper.find('.io-text-filter-input');
+        var $status = $wrapper.find('.io-status');
+
+        // Clear the input visually (not strictly needed since we reload, but nice)
+        $input.val('');
+
+        if ($status.length) {
+            $status.text('');
+        }
+
+        // Easiest and most robust: full page reload restores original gallery,
+        // including pagination, filters, and markup as rendered by the shortcode.
+        window.location.reload();
     });
 
     // ------------------------------------
@@ -289,13 +372,13 @@ jQuery(function ($) {
     // ------------------------------------
 
     $(document).on('click', '.io-load-more', function () {
-        var $btn     = $(this);
+        var $btn = $(this);
         var $wrapper = $btn.closest('.io-gallery-wrapper');
         var $gallery = $wrapper.find('.io-gallery');
-        var $status  = $wrapper.find('.io-status');
+        var $status = $wrapper.find('.io-status');
 
         var currentPage = parseInt($wrapper.data('io-current-page'), 10) || 1;
-        var maxPages    = parseInt($wrapper.data('io-max-pages'), 10) || 1;
+        var maxPages = parseInt($wrapper.data('io-max-pages'), 10) || 1;
 
         if (currentPage >= maxPages) {
             $btn.remove();
@@ -308,16 +391,16 @@ jQuery(function ($) {
         $btn.prop('disabled', true).text('Loading...');
 
         var data = {
-            action:          'io_load_more',
-            nonce:           (typeof ImageOrganizerData !== 'undefined') ? ImageOrganizerData.nonce : '',
-            page:            currentPage + 1,
-            per_page:        $wrapper.data('io-per-page'),
-            columns:         $wrapper.data('io-columns'),
-            categories:      $wrapper.data('io-categories') || '',
-            tags:            $wrapper.data('io-tags') || '',
+            action: 'io_load_more',
+            nonce: (typeof ImageOrganizerData !== 'undefined') ? ImageOrganizerData.nonce : '',
+            page: currentPage + 1,
+            per_page: $wrapper.data('io-per-page'),
+            columns: $wrapper.data('io-columns'),
+            categories: $wrapper.data('io-categories') || '',
+            tags: $wrapper.data('io-tags') || '',
             filter_taxonomy: $wrapper.data('io-filter-taxonomy') || 'category',
-            show_filter:     $wrapper.data('io-show-filter') || 'false',
-            ids:             $wrapper.data('io-ids') || ''
+            show_filter: $wrapper.data('io-show-filter') || 'false',
+            ids: $wrapper.data('io-ids') || ''
         };
 
         $.post(ImageOrganizerData.ajax_url, data, function (response) {
@@ -332,7 +415,7 @@ jQuery(function ($) {
             var html = response.data && response.data.html ? response.data.html : '';
 
             if (html) {
-                var $tmp     = $('<div>').html(html);
+                var $tmp = $('<div>').html(html);
                 var newCount = $tmp.find('.io-gallery-item').length;
 
                 $gallery.append(html);

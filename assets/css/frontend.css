@@ -193,6 +193,10 @@
 
 .io-text-filter {
     margin-bottom: 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
 }
 
 .io-text-filter-input {
@@ -204,6 +208,15 @@
     font-size: 0.9rem;
 }
 
+.io-text-filter-clear {
+    padding: 0.35rem 0.8rem;
+    border-radius: 4px;
+    border: 1px solid #999999;
+    background: #f7f7f7;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
 /* If you don’t already have .screen-reader-text in your theme: */
 .screen-reader-text {
     position: absolute;
@@ -213,7 +226,6 @@
     height: 1px;
     overflow: hidden;
 }
-
 
 /* =========================
    Pagination

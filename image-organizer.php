@@ -27,7 +27,12 @@ class Image_Organizer_Gallery
         // AJAX for load more pagination
         add_action('wp_ajax_io_load_more', [$this, 'ajax_load_more']);
         add_action('wp_ajax_nopriv_io_load_more', [$this, 'ajax_load_more']);
+
+        // AJAX for title/description search
+        add_action('wp_ajax_io_search_images', [$this, 'ajax_search_images']);
+        add_action('wp_ajax_nopriv_io_search_images', [$this, 'ajax_search_images']);
     }
+
 
     public function register_taxonomies()
     {
@@ -188,7 +193,7 @@ class Image_Organizer_Gallery
         $has_more  = $max_pages > 1;
 
         ob_start();
-        ?>
+?>
 
         <div
             class="io-gallery-wrapper"
@@ -212,12 +217,20 @@ class Image_Organizer_Gallery
                     class="screen-reader-text">
                     <?php esc_html_e('Filter images by title or description', 'image-organizer'); ?>
                 </label>
+
                 <input
                     type="search"
                     id="<?php echo esc_attr($gallery_id); ?>-text-filter"
                     class="io-text-filter-input"
                     placeholder="<?php esc_attr_e('Filter by title or description…', 'image-organizer'); ?>"
                     aria-label="<?php esc_attr_e('Filter images by title or description', 'image-organizer'); ?>" />
+
+                <button
+                    type="button"
+                    class="io-text-filter-clear"
+                    aria-label="<?php esc_attr_e('Clear search and reset the gallery', 'image-organizer'); ?>">
+                    <?php esc_html_e('Clear', 'image-organizer'); ?>
+                </button>
             </div>
 
             <?php if ($show_filter && ! empty($filter_terms)) : ?>
@@ -408,13 +421,173 @@ class Image_Organizer_Gallery
                         </div>
                     </div>
                 </div>
-
             </div>
 
-        </div>
+        </div> <!-- end .io-gallery-wrapper -->
         <?php
 
         return ob_get_clean();
+    }
+
+    public function ajax_search_images()
+    {
+        if (! isset($_POST['nonce']) || ! wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['nonce'])), 'io_load_more')) {
+            wp_send_json_error(['message' => 'Invalid nonce'], 400);
+        }
+
+        $search          = isset($_POST['search']) ? sanitize_text_field(wp_unslash($_POST['search'])) : '';
+        $categories      = isset($_POST['categories']) ? sanitize_text_field(wp_unslash($_POST['categories'])) : '';
+        $tags            = isset($_POST['tags']) ? sanitize_text_field(wp_unslash($_POST['tags'])) : '';
+        $filter_taxonomy = isset($_POST['filter_taxonomy']) && 'tag' === strtolower($_POST['filter_taxonomy']) ? 'post_tag' : 'category';
+        $show_filter     = ! empty($_POST['show_filter']) && 'true' === $_POST['show_filter'];
+        $ids_raw         = isset($_POST['ids']) ? sanitize_text_field(wp_unslash($_POST['ids'])) : '';
+        $ids             = array_filter(array_map('trim', explode(',', $ids_raw)));
+
+        $args = [
+            'post_type'      => 'attachment',
+            'post_status'    => 'inherit',
+            'post_mime_type' => 'image',
+            'posts_per_page' => -1,        // 🔑 search across ALL matching images
+            'orderby'        => 'date',
+            'order'          => 'DESC',
+        ];
+
+        // Search by title/description/content
+        if ('' !== $search) {
+            $args['s'] = $search;
+        }
+
+        // Restrict to specific IDs if provided in shortcode
+        if (! empty($ids)) {
+            $args['post__in'] = $ids;
+            $args['orderby']  = 'post__in';
+        }
+
+        // Taxonomy domain: 🔑 if categories option is set, constrain search to that category
+        $tax_query = [];
+
+        if (! empty($categories)) {
+            $category_slugs = array_filter(array_map('trim', explode(',', $categories)));
+            if (! empty($category_slugs)) {
+                $tax_query[] = [
+                    'taxonomy' => 'category',
+                    'field'    => 'slug',
+                    'terms'    => $category_slugs,
+                ];
+            }
+        }
+
+        // Keep tags consistent if shortcode passed tags as well
+        if (! empty($tags)) {
+            $tag_slugs = array_filter(array_map('trim', explode(',', $tags)));
+            if (! empty($tag_slugs)) {
+                $tax_query[] = [
+                    'taxonomy' => 'post_tag',
+                    'field'    => 'slug',
+                    'terms'    => $tag_slugs,
+                ];
+            }
+        }
+
+        if (! empty($tax_query)) {
+            if (count($tax_query) > 1) {
+                $tax_query['relation'] = 'AND';
+            }
+            $args['tax_query'] = $tax_query;
+        }
+
+        $query = new WP_Query($args);
+
+        if (! $query->have_posts()) {
+            wp_send_json_success([
+                'html' => '',
+            ]);
+        }
+
+        ob_start();
+
+        while ($query->have_posts()) :
+            $query->the_post();
+            $attachment_id   = get_the_ID();
+            $title           = get_the_title($attachment_id);
+            $caption         = wp_get_attachment_caption($attachment_id);
+            $description     = get_post_field('post_content', $attachment_id);
+            $alt             = get_post_meta($attachment_id, '_wp_attachment_image_alt', true);
+            $image_src       = wp_get_attachment_image_src($attachment_id, 'large');
+            $thumb_html      = wp_get_attachment_image(
+                $attachment_id,
+                'medium',
+                false,
+                [
+                    'class' => 'io-gallery-thumb',
+                ]
+            );
+            $download_url    = wp_get_attachment_url($attachment_id);
+
+            $item_terms = [];
+            if ($show_filter && $filter_taxonomy) {
+                $item_terms_ids = wp_get_post_terms(
+                    $attachment_id,
+                    $filter_taxonomy,
+                    ['fields' => 'ids']
+                );
+                if (! is_wp_error($item_terms_ids) && ! empty($item_terms_ids)) {
+                    foreach ($item_terms_ids as $term_id) {
+                        $item_terms[] = 'term-' . $term_id;
+                    }
+                }
+            }
+
+            $item_terms_attr = ! empty($item_terms) ? implode(' ', $item_terms) : '';
+
+            // Accessible label (same pattern as elsewhere)
+            $button_label_parts = [];
+            if ($title) {
+                $button_label_parts[] = $title;
+            }
+            if ($caption) {
+                $button_label_parts[] = $caption;
+            }
+            if ($alt && empty($button_label_parts)) {
+                $button_label_parts[] = $alt;
+            }
+            $button_aria_label = $button_label_parts
+                ? sprintf(
+                    __('View details for "%s"', 'image-organizer'),
+                    implode(' – ', $button_label_parts)
+                )
+                : __('View image details', 'image-organizer');
+        ?>
+            <div
+                class="io-gallery-item"
+                role="listitem"
+                <?php if ($show_filter) : ?>
+                data-io-terms="<?php echo esc_attr($item_terms_attr); ?>"
+                <?php endif; ?>>
+                <button
+                    class="io-gallery-trigger"
+                    type="button"
+                    aria-label="<?php echo esc_attr($button_aria_label); ?>"
+                    data-io-title="<?php echo esc_attr($title); ?>"
+                    data-io-caption="<?php echo esc_attr($caption); ?>"
+                    data-io-description="<?php echo esc_attr(wp_strip_all_tags($description)); ?>"
+                    data-io-alt="<?php echo esc_attr($alt); ?>"
+                    data-io-src="<?php echo esc_url($image_src ? $image_src[0] : $download_url); ?>"
+                    data-io-download="<?php echo esc_url($download_url); ?>">
+                    <?php echo $thumb_html; ?>
+                </button>
+            </div>
+        <?php
+        endwhile;
+        wp_reset_postdata();
+
+        $html = ob_get_clean();
+
+        wp_send_json_success(
+            [
+                'html' => $html,
+            ]
+        );
     }
 
     public function ajax_load_more()
@@ -544,7 +717,7 @@ class Image_Organizer_Gallery
                     implode(' – ', $button_label_parts)
                 )
                 : __('View image details', 'image-organizer');
-            ?>
+        ?>
             <div
                 class="io-gallery-item"
                 role="listitem"
@@ -564,7 +737,7 @@ class Image_Organizer_Gallery
                     <?php echo $thumb_html; ?>
                 </button>
             </div>
-            <?php
+<?php
         endwhile;
         wp_reset_postdata();
 
