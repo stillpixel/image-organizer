@@ -9,7 +9,10 @@
  * Text Domain: image-organizer
  * Requires at least: 6.0
  * Requires PHP: 7.4
+ * License: GPL-2.0-or-later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  */
+
 
 if (! defined('ABSPATH')) {
     exit;
@@ -310,11 +313,13 @@ class Image_Organizer_Gallery
                     }
                     $button_aria_label = $button_label_parts
                         ? sprintf(
-                            /* translators: %s is the image title or description */
+                            /* translators: %s: image title, caption, or alt text. */
                             __('View details for "%s"', 'image-organizer'),
                             implode(' – ', $button_label_parts)
                         )
                         : __('View image details', 'image-organizer');
+
+
                 ?>
                     <div
                         class="io-gallery-item"
@@ -332,7 +337,7 @@ class Image_Organizer_Gallery
                             data-io-alt="<?php echo esc_attr($alt); ?>"
                             data-io-src="<?php echo esc_url($image_src ? $image_src[0] : $download_url); ?>"
                             data-io-download="<?php echo esc_url($download_url); ?>">
-                            <?php echo $thumb_html; ?>
+                            <?php echo wp_kses_post($thumb_html); ?>
                         </button>
                     </div>
                 <?php endwhile; ?>
@@ -400,6 +405,7 @@ class Image_Organizer_Gallery
                                 <button
                                     type="button"
                                     class="io-alt-copy-button"
+                                    title="<?php esc_attr_e('Copy alt text to clipboard', 'image-organizer'); ?>"
                                     aria-label="<?php esc_attr_e('Copy alt text to clipboard', 'image-organizer'); ?>">
                                     📋
                                 </button>
@@ -438,7 +444,12 @@ class Image_Organizer_Gallery
         $search          = isset($_POST['search']) ? sanitize_text_field(wp_unslash($_POST['search'])) : '';
         $categories      = isset($_POST['categories']) ? sanitize_text_field(wp_unslash($_POST['categories'])) : '';
         $tags            = isset($_POST['tags']) ? sanitize_text_field(wp_unslash($_POST['tags'])) : '';
-        $filter_taxonomy = isset($_POST['filter_taxonomy']) && 'tag' === strtolower($_POST['filter_taxonomy']) ? 'post_tag' : 'category';
+        $filter_taxonomy_raw = isset($_POST['filter_taxonomy'])
+            ? sanitize_text_field(wp_unslash($_POST['filter_taxonomy']))
+            : '';
+
+        $filter_taxonomy = ('tag' === strtolower($filter_taxonomy_raw)) ? 'post_tag' : 'category';
+
         $show_filter     = ! empty($_POST['show_filter']) && 'true' === $_POST['show_filter'];
         $ids_raw         = isset($_POST['ids']) ? sanitize_text_field(wp_unslash($_POST['ids'])) : '';
         $ids             = array_filter(array_map('trim', explode(',', $ids_raw)));
@@ -553,10 +564,13 @@ class Image_Organizer_Gallery
             }
             $button_aria_label = $button_label_parts
                 ? sprintf(
+                    /* translators: %s: image title, caption, or alt text. */
                     __('View details for "%s"', 'image-organizer'),
                     implode(' – ', $button_label_parts)
                 )
                 : __('View image details', 'image-organizer');
+
+
         ?>
             <div
                 class="io-gallery-item"
@@ -574,7 +588,7 @@ class Image_Organizer_Gallery
                     data-io-alt="<?php echo esc_attr($alt); ?>"
                     data-io-src="<?php echo esc_url($image_src ? $image_src[0] : $download_url); ?>"
                     data-io-download="<?php echo esc_url($download_url); ?>">
-                    <?php echo $thumb_html; ?>
+                    <?php echo wp_kses_post($thumb_html); ?>
                 </button>
             </div>
         <?php
@@ -601,7 +615,12 @@ class Image_Organizer_Gallery
         $columns         = isset($_POST['columns']) ? max(1, min(6, intval($_POST['columns']))) : 4;
         $categories      = isset($_POST['categories']) ? sanitize_text_field(wp_unslash($_POST['categories'])) : '';
         $tags            = isset($_POST['tags']) ? sanitize_text_field(wp_unslash($_POST['tags'])) : '';
-        $filter_taxonomy = isset($_POST['filter_taxonomy']) && 'tag' === strtolower($_POST['filter_taxonomy']) ? 'post_tag' : 'category';
+        $filter_taxonomy_raw = isset($_POST['filter_taxonomy'])
+            ? sanitize_text_field(wp_unslash($_POST['filter_taxonomy']))
+            : '';
+
+        $filter_taxonomy = ('tag' === strtolower($filter_taxonomy_raw)) ? 'post_tag' : 'category';
+
         $show_filter     = ! empty($_POST['show_filter']) && 'true' === $_POST['show_filter'];
         $ids_raw         = isset($_POST['ids']) ? sanitize_text_field(wp_unslash($_POST['ids'])) : '';
         $ids             = array_filter(array_map('trim', explode(',', $ids_raw)));
@@ -713,10 +732,13 @@ class Image_Organizer_Gallery
             }
             $button_aria_label = $button_label_parts
                 ? sprintf(
+                    /* translators: %s: image title, caption, or alt text. */
                     __('View details for "%s"', 'image-organizer'),
                     implode(' – ', $button_label_parts)
                 )
                 : __('View image details', 'image-organizer');
+
+
         ?>
             <div
                 class="io-gallery-item"
@@ -734,7 +756,7 @@ class Image_Organizer_Gallery
                     data-io-alt="<?php echo esc_attr($alt); ?>"
                     data-io-src="<?php echo esc_url($image_src ? $image_src[0] : $download_url); ?>"
                     data-io-download="<?php echo esc_url($download_url); ?>">
-                    <?php echo $thumb_html; ?>
+                    <?php echo wp_kses_post($thumb_html); ?>
                 </button>
             </div>
 <?php
