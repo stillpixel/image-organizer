@@ -6,7 +6,7 @@
  * Description: Simple image organizer/gallery with metadata modal and download button.
  * Version:     1.1.3
  * Author:      Ron Rattie
- * Text Domain: image-organizer
+ * Text Domain: image-organizer-gallery
  * Requires at least: 6.0
  * Requires PHP: 7.4
  * License: GPL-2.0-or-later
