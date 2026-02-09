@@ -19,7 +19,7 @@ jQuery(function ($) {
         var $image = $modal.find('.io-modal-image');
         var $title = $modal.find('.io-modal-title');
         var $caption = $modal.find('.io-modal-caption');
-        var $description = $modal.find('.io-modal-description');
+        var $description = $modal.find('.io-modal-description-text');
         var $alt = $modal.find('.io-modal-alt');
         var $download = $modal.find('.io-modal-download');
 
@@ -283,10 +283,10 @@ jQuery(function ($) {
     // ------------------------------------
 
     $(document).on('input', '.io-text-filter-input', function () {
-        var $input    = $(this);
-        var $wrapper  = $input.closest('.io-gallery-wrapper');
-        var $gallery  = $wrapper.find('.io-gallery');
-        var $status   = $wrapper.find('.io-status');
+        var $input = $(this);
+        var $wrapper = $input.closest('.io-gallery-wrapper');
+        var $gallery = $wrapper.find('.io-gallery');
+        var $status = $wrapper.find('.io-status');
         var $loadMore = $wrapper.find('.io-load-more');
 
         var query = ($input.val() || '').toString();
@@ -296,14 +296,14 @@ jQuery(function ($) {
         var thisRequestId = ioSearchRequestId;
 
         var data = {
-            action:          'io_search_images',
-            nonce:           (typeof ImageOrganizerData !== 'undefined') ? ImageOrganizerData.nonce : '',
-            search:          query,
-            categories:      $wrapper.data('io-categories') || '',
-            tags:            $wrapper.data('io-tags') || '',
+            action: 'io_search_images',
+            nonce: (typeof ImageOrganizerData !== 'undefined') ? ImageOrganizerData.nonce : '',
+            search: query,
+            categories: $wrapper.data('io-categories') || '',
+            tags: $wrapper.data('io-tags') || '',
             filter_taxonomy: $wrapper.data('io-filter-taxonomy') || 'category',
-            show_filter:     $wrapper.data('io-show-filter') || 'false',
-            ids:             $wrapper.data('io-ids') || ''
+            show_filter: $wrapper.data('io-show-filter') || 'false',
+            ids: $wrapper.data('io-ids') || ''
         };
 
         $.post(ImageOrganizerData.ajax_url, data, function (response) {
@@ -328,9 +328,9 @@ jQuery(function ($) {
             }
 
             if ($status.length) {
-                var $tmp   = $('<div>').html(html);
-                var count  = $tmp.find('.io-gallery-item').length;
-                var qTrim  = query.trim();
+                var $tmp = $('<div>').html(html);
+                var count = $tmp.find('.io-gallery-item').length;
+                var qTrim = query.trim();
 
                 if (qTrim === '') {
                     $status.text(
@@ -365,6 +365,132 @@ jQuery(function ($) {
         // Easiest and most robust: full page reload restores original gallery,
         // including pagination, filters, and markup as rendered by the shortcode.
         window.location.reload();
+    });
+
+    // ------------------------------------
+    // Upload form submit (AJAX)
+    // ------------------------------------
+
+    $(document).on('submit', '.io-upload-form', function (e) {
+        e.preventDefault();
+
+        var $form = $(this);
+        var $wrapper = $form.closest('.io-gallery-wrapper');
+        var $gallery = $wrapper.find('.io-gallery');
+        var $status = $form.find('.io-upload-status');
+
+        if (typeof ImageOrganizerData === 'undefined' || !ImageOrganizerData.ajax_url) {
+            if ($status.length) {
+                $status.text('Upload error: missing AJAX configuration.');
+            }
+            return;
+        }
+
+        var fileInput = $form.find('input[type="file"][name="io_file"]')[0];
+        if (!fileInput || !fileInput.files || !fileInput.files.length) {
+            if ($status.length) {
+                $status.text('Please choose an image to upload.');
+            }
+            return;
+        }
+
+        // Disable submit while uploading
+        var $submit = $form.find('.io-upload-submit');
+        $submit.prop('disabled', true);
+
+        if ($status.length) {
+            $status.text('Uploading…');
+        }
+
+        var fd = new FormData($form[0]);
+        fd.append('action', 'io_upload_image');
+        fd.append('nonce', ImageOrganizerData.upload_nonce || '');
+
+        // Ensure gallery context is included (your PHP expects io_gallery_id)
+        if (!fd.get('io_gallery_id')) {
+            fd.append('io_gallery_id', $wrapper.attr('id') || '');
+        }
+
+        $.ajax({
+            url: ImageOrganizerData.ajax_url,
+            type: 'POST',
+            data: fd,
+            processData: false,
+            contentType: false,
+            success: function (response) {
+                if (!response || !response.success) {
+                    var msg = (response && response.data && response.data.message) ? response.data.message : 'Upload failed.';
+                    if ($status.length) {
+                        $status.text(msg);
+                    }
+                    return;
+                }
+
+                var data = response.data || {};
+
+                // Build a new gallery item consistent with server markup
+                var $item = $('<div/>', {
+                    'class': 'io-gallery-item',
+                    'role': 'listitem'
+                });
+
+                var ariaLabel = 'View image details';
+                if (data.title) {
+                    ariaLabel = 'View details for "' + data.title + '"';
+                }
+
+                var $btn = $('<button/>', {
+                    'class': 'io-gallery-trigger',
+                    'type': 'button',
+                    'aria-label': ariaLabel
+                });
+
+                $btn.attr('data-io-title', data.title || '');
+                $btn.attr('data-io-caption', data.caption || '');
+                $btn.attr('data-io-description', data.description || '');
+                $btn.attr('data-io-alt', data.alt || '');
+                $btn.attr('data-io-src', data.src || data.download || '');
+                $btn.attr('data-io-download', data.download || '');
+
+                // thumb returned as HTML from server (already sanitized with wp_kses_post server-side)
+                if (data.thumb) {
+                    $btn.append($(data.thumb));
+                } else {
+                    // fallback: show an img
+                    $btn.append($('<img/>', { 'class': 'io-gallery-thumb', 'src': (data.src || ''), 'alt': (data.alt || '') }));
+                }
+
+                $item.append($btn);
+
+                // Add to top of gallery so user sees it immediately
+                if ($gallery.length) {
+                    $gallery.prepend($item);
+                }
+
+                // Clear the form
+                $form[0].reset();
+
+                if ($status.length) {
+                    if (data.pending) {
+                        $status.text('Upload received. This image is pending review.');
+                    } else {
+                        $status.text('Upload successful.');
+                    }
+                }
+            },
+            error: function (xhr) {
+                var msg = 'Upload failed.';
+                if (xhr && xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
+                    msg = xhr.responseJSON.data.message;
+                }
+                if ($status.length) {
+                    $status.text(msg);
+                }
+            },
+            complete: function () {
+                $submit.prop('disabled', false);
+            }
+        });
     });
 
     // ------------------------------------
