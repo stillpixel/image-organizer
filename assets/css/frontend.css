@@ -306,3 +306,138 @@
         transition-duration: 0.001ms !important;
     }
 }
+
+/* ---------------------------------------
+   Upload form (theme-agnostic styling)
+---------------------------------------- */
+
+/* Visual separation from gallery */
+.io-upload-separator {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(0,0,0,.12);
+}
+
+/* Card look */
+.io-upload-card {
+  max-width: 900px;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,.12);
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: 0 6px 18px rgba(0,0,0,.06);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Title */
+.io-upload-card .io-upload-title {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  font-weight: 650;
+}
+
+/* Grid layout */
+.io-upload-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 720px) {
+  .io-upload-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem 1.25rem;
+  }
+
+  .io-upload-field--file,
+  .io-upload-field--desc,
+  .io-upload-actions {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Labels and help text */
+.io-upload-label {
+  display: block;
+  margin-bottom: .35rem;
+  font-weight: 600;
+}
+
+.io-upload-help {
+  margin: .35rem 0 0 0;
+  font-size: .9rem;
+  opacity: .85;
+}
+
+/* Inputs */
+.io-upload-file,
+.io-upload-title-input,
+.io-upload-alt,
+.io-upload-key,
+.io-upload-desc {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgba(0,0,0,.2);
+  border-radius: 10px;
+  padding: .6rem .75rem;
+  background: #fff;
+}
+
+.io-upload-desc {
+  resize: vertical;
+  min-height: 90px;
+}
+
+.io-upload-file:focus,
+.io-upload-title-input:focus,
+.io-upload-alt:focus,
+.io-upload-key:focus,
+.io-upload-desc:focus {
+  outline: none;
+  border-color: rgba(0, 95, 204, .65);
+  box-shadow: 0 0 0 3px rgba(0, 95, 204, .18);
+}
+
+/* Actions row */
+.io-upload-actions {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+
+.io-upload-submit {
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  padding: .65rem 1.05rem;
+  font-weight: 650;
+  cursor: pointer;
+  background: #1e73be; /* WP-ish blue */
+  color: #fff;
+}
+
+.io-upload-submit:hover {
+  filter: brightness(0.95);
+}
+
+.io-upload-submit:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
+.io-upload-status {
+  font-size: .95rem;
+  opacity: .9;
+}
+
+/* Honeypot hidden */
+.io-upload-hp {
+  position: absolute !important;
+  left: -9999px !important;
+  top: -9999px !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+}

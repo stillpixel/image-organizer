@@ -387,113 +387,108 @@ class Image_Organizer_Gallery
             <!-- Upload form (optional, based on shortcode attributes) -->
             <?php if ($allow_upload) : ?>
                 <!-- Separation from gallery tiles & Load More -->
-                <div class="mt-4 pt-4 border-top io-upload-separator">
+                <div class="io-upload-separator">
+                    <div class="io-upload-card">
+                        <h3 class="io-upload-title"><?php esc_html_e('Upload an image', 'image-organizer'); ?></h3>
 
-                    <div class="card shadow-sm io-upload-card">
-                        <div class="card-body">
-                            <h3 class="h5 mb-3"><?php esc_html_e('Upload an image', 'image-organizer'); ?></h3>
+                        <form class="io-upload-form" enctype="multipart/form-data">
+                            <div class="io-upload-grid">
 
-                            <form class="io-upload-form" enctype="multipart/form-data">
-                                <div class="row g-3">
-
-                                    <div class="col-12">
-                                        <label class="form-label io-upload-label" for="<?php echo esc_attr($gallery_id); ?>-upload-file">
-                                            <?php esc_html_e('Choose image', 'image-organizer'); ?>
-                                        </label>
-                                        <input
-                                            id="<?php echo esc_attr($gallery_id); ?>-upload-file"
-                                            class="form-control io-upload-file"
-                                            type="file"
-                                            name="io_file"
-                                            accept="image/jpeg,image/png,image/gif"
-                                            required />
-                                        <div class="form-text io-upload-help">
-                                            <?php
-                                            /* translators: %d: max upload size in megabytes */
-                                            printf(
-                                                esc_html__('Max size: %dMB. Allowed: JPG, PNG, GIF.', 'image-organizer'),
-                                                (int) $upload_max_mb
-                                            );
-                                            ?>
-                                        </div>
-                                    </div>
-
-                                    <div class="col-12 col-md-6">
-                                        <label class="form-label io-upload-label" for="<?php echo esc_attr($gallery_id); ?>-upload-title">
-                                            <?php esc_html_e('Title', 'image-organizer'); ?>
-                                        </label>
-                                        <input
-                                            id="<?php echo esc_attr($gallery_id); ?>-upload-title"
-                                            class="form-control io-upload-title-input"
-                                            type="text"
-                                            name="io_title" />
-                                    </div>
-
-                                    <div class="col-12 col-md-6">
-                                        <label class="form-label io-upload-label" for="<?php echo esc_attr($gallery_id); ?>-upload-alt">
-                                            <?php esc_html_e('Alt text', 'image-organizer'); ?>
-                                        </label>
-                                        <input
-                                            id="<?php echo esc_attr($gallery_id); ?>-upload-alt"
-                                            class="form-control io-upload-alt"
-                                            type="text"
-                                            name="io_alt" />
-                                    </div>
-
-                                    <div class="col-12">
-                                        <label class="form-label io-upload-label" for="<?php echo esc_attr($gallery_id); ?>-upload-desc">
-                                            <?php esc_html_e('Description', 'image-organizer'); ?>
-                                        </label>
-                                        <textarea
-                                            id="<?php echo esc_attr($gallery_id); ?>-upload-desc"
-                                            class="form-control io-upload-desc"
-                                            name="io_description"
-                                            rows="3"></textarea>
-                                    </div>
-
-                                    <?php if (! empty($upload_key_required)) : ?>
-                                        <div class="col-12 col-md-6">
-                                            <label class="form-label io-upload-label" for="<?php echo esc_attr($gallery_id); ?>-upload-key">
-                                                <?php esc_html_e('Upload key', 'image-organizer'); ?>
-                                            </label>
-                                            <input
-                                                id="<?php echo esc_attr($gallery_id); ?>-upload-key"
-                                                class="form-control io-upload-key"
-                                                type="password"
-                                                name="io_upload_key"
-                                                required />
-                                        </div>
-                                    <?php endif; ?>
-
-                                    <!-- Honeypot (hidden) -->
-                                    <div class="d-none">
-                                        <label for="<?php echo esc_attr($gallery_id); ?>-website">Website</label>
-                                        <input
-                                            id="<?php echo esc_attr($gallery_id); ?>-website"
-                                            type="text"
-                                            name="website"
-                                            tabindex="-1"
-                                            autocomplete="off" />
-                                    </div>
-
-                                    <input type="hidden" name="io_gallery_id" value="<?php echo esc_attr($gallery_id); ?>" />
-                                    <input type="hidden" name="io_upload_category" value="<?php echo esc_attr($upload_category); ?>" />
-                                    <input type="hidden" name="io_require_review" value="<?php echo $upload_require_review ? '1' : '0'; ?>" />
-                                    <input type="hidden" name="io_max_mb" value="<?php echo esc_attr($upload_max_mb); ?>" />
-
-                                    <div class="col-12 d-flex align-items-center gap-2">
-                                        <button type="submit" class="btn btn-primary io-upload-submit">
-                                            <?php esc_html_e('Upload', 'image-organizer'); ?>
-                                        </button>
-                                        <div class="io-upload-status small text-muted" aria-live="polite" aria-atomic="true"></div>
-                                    </div>
-
+                                <div class="io-upload-field io-upload-field--file">
+                                    <label class="io-upload-label" for="<?php echo esc_attr($gallery_id); ?>-upload-file">
+                                        <?php esc_html_e('Choose image', 'image-organizer'); ?>
+                                    </label>
+                                    <input
+                                        id="<?php echo esc_attr($gallery_id); ?>-upload-file"
+                                        class="io-upload-file"
+                                        type="file"
+                                        name="io_file"
+                                        accept="image/jpeg,image/png,image/gif"
+                                        required />
+                                    <p class="io-upload-help">
+                                        <?php
+                                        /* translators: %d: max upload size in megabytes */
+                                        printf(
+                                            esc_html__('Max size: %dMB. Allowed: JPG, PNG, GIF.', 'image-organizer'),
+                                            (int) $upload_max_mb
+                                        );
+                                        ?>
+                                    </p>
                                 </div>
-                            </form>
 
-                        </div>
+                                <div class="io-upload-field">
+                                    <label class="io-upload-label" for="<?php echo esc_attr($gallery_id); ?>-upload-title">
+                                        <?php esc_html_e('Title', 'image-organizer'); ?>
+                                    </label>
+                                    <input
+                                        id="<?php echo esc_attr($gallery_id); ?>-upload-title"
+                                        class="io-upload-title-input"
+                                        type="text"
+                                        name="io_title" />
+                                </div>
+
+                                <div class="io-upload-field">
+                                    <label class="io-upload-label" for="<?php echo esc_attr($gallery_id); ?>-upload-alt">
+                                        <?php esc_html_e('Alt text', 'image-organizer'); ?>
+                                    </label>
+                                    <input
+                                        id="<?php echo esc_attr($gallery_id); ?>-upload-alt"
+                                        class="io-upload-alt"
+                                        type="text"
+                                        name="io_alt" />
+                                </div>
+
+                                <div class="io-upload-field io-upload-field--desc">
+                                    <label class="io-upload-label" for="<?php echo esc_attr($gallery_id); ?>-upload-desc">
+                                        <?php esc_html_e('Description', 'image-organizer'); ?>
+                                    </label>
+                                    <textarea
+                                        id="<?php echo esc_attr($gallery_id); ?>-upload-desc"
+                                        class="io-upload-desc"
+                                        name="io_description"
+                                        rows="3"></textarea>
+                                </div>
+
+                                <?php if (! empty($upload_key_required)) : ?>
+                                    <div class="io-upload-field">
+                                        <label class="io-upload-label" for="<?php echo esc_attr($gallery_id); ?>-upload-key">
+                                            <?php esc_html_e('Upload key', 'image-organizer'); ?>
+                                        </label>
+                                        <input
+                                            id="<?php echo esc_attr($gallery_id); ?>-upload-key"
+                                            class="io-upload-key"
+                                            type="password"
+                                            name="io_upload_key"
+                                            required />
+                                    </div>
+                                <?php endif; ?>
+
+                                <!-- Honeypot (hidden) -->
+                                <div class="io-upload-hp" aria-hidden="true">
+                                    <label for="<?php echo esc_attr($gallery_id); ?>-website">Website</label>
+                                    <input
+                                        id="<?php echo esc_attr($gallery_id); ?>-website"
+                                        type="text"
+                                        name="website"
+                                        tabindex="-1"
+                                        autocomplete="off" />
+                                </div>
+
+                                <input type="hidden" name="io_gallery_id" value="<?php echo esc_attr($gallery_id); ?>" />
+                                <input type="hidden" name="io_upload_category" value="<?php echo esc_attr($upload_category); ?>" />
+                                <input type="hidden" name="io_require_review" value="<?php echo $upload_require_review ? '1' : '0'; ?>" />
+                                <input type="hidden" name="io_max_mb" value="<?php echo esc_attr($upload_max_mb); ?>" />
+
+                                <div class="io-upload-actions">
+                                    <button type="submit" class="io-upload-submit">
+                                        <?php esc_html_e('Upload', 'image-organizer'); ?>
+                                    </button>
+                                    <div class="io-upload-status" aria-live="polite" aria-atomic="true"></div>
+                                </div>
+
+                            </div>
+                        </form>
                     </div>
-
                 </div>
             <?php endif; ?>
 
