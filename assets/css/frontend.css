@@ -441,3 +441,24 @@
   height: 1px !important;
   overflow: hidden !important;
 }
+
+/* Note styling */
+.io-upload-form {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #ddd;
+}
+
+.io-upload-title {
+  margin: 0 0 8px 0;
+}
+
+.io-upload-note {
+  margin: 0 0 16px 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.io-upload-note a {
+  text-decoration: underline;
+}
