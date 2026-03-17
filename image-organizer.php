@@ -3,7 +3,7 @@
  * Plugin Name: Simple Image Organizer
  * Plugin URI:  https://stillpixelstudios.com/
  * Description: Simple image organizer with metadata modal and download button.
- * Version:     1.1.5
+ * Version:     1.1.6
  * Author:      Ron Rattie
  * Text Domain: image-organizer
  * Requires at least: 6.0
@@ -52,7 +52,7 @@ class Image_Organizer_Gallery {
     }
 
     public function register_assets() {
-        $version = '1.1.4';
+        $version = '1.1.6';
 
         wp_register_style(
             'image-organizer-frontend',
@@ -118,9 +118,9 @@ class Image_Organizer_Gallery {
      * @return array
      */
     private function parse_slug_csv($csv) {
-        $csv = (string) $csv;
+        $csv   = (string) $csv;
         $parts = array_filter(array_map('trim', explode(',', $csv)));
-        $out = array();
+        $out   = array();
 
         foreach ($parts as $p) {
             $p = sanitize_title($p);
@@ -197,30 +197,41 @@ class Image_Organizer_Gallery {
 
         $atts = shortcode_atts(
             array(
-                'ids'             => '',
-                'columns'         => 4,
-                'limit'           => 12,          // per-page.
-                'categories'      => '',          // WP category slugs.
-                'tags'            => '',          // WP tag slugs.
-                'media_categories'=> '',          // MLO media_category slugs.
-                'show_filter'     => 'false',
-                'filter_taxonomy' => 'category',  // category|tag|media_category|mlo.
-                'aria_label'      => '',
+                'ids'              => '',
+                'columns'          => 4,
+                'limit'            => 12,          // per-page.
+                'categories'       => '',          // WP category slugs.
+                'tags'             => '',          // WP tag slugs.
+                'media_categories' => '',          // MLO media_category slugs.
+                'show_filter'      => 'false',
+                'filter_taxonomy'  => 'category',  // category|tag|media_category|mlo.
+                'aria_label'       => '',
 
                 // Upload.
-                'allow_upload'          => 'false',
-                'upload_category'       => '',  // WP category slug (optional).
-                'upload_media_category' => '',  // MLO media_category slug (optional).
-                'upload_key'            => '',
-                'upload_require_review' => 'true',
-                'upload_max_mb'         => 20,
-                'upload_note_text'      => '',
-                'upload_note_url_text'  => '',
-                'upload_note_url'       => '',
+                'allow_upload'           => 'false',
+                'upload_category'        => '',  // WP category slug (optional).
+
+                // IMPORTANT: support both names:
+                // - upload_media_category (preferred)
+                // - upload_media_categories (alias)
+                'upload_media_category'  => '',
+                'upload_media_categories'=> '',
+
+                'upload_key'             => '',
+                'upload_require_review'  => 'true',
+                'upload_max_mb'          => 20,
+                'upload_note_text'       => '',
+                'upload_note_url_text'   => '',
+                'upload_note_url'        => '',
             ),
             $atts,
             'image_organizer'
         );
+
+        // Normalize upload media category (support alias).
+        if (empty($atts['upload_media_category']) && ! empty($atts['upload_media_categories'])) {
+            $atts['upload_media_category'] = $atts['upload_media_categories'];
+        }
 
         wp_enqueue_style('image-organizer-frontend');
         wp_enqueue_script('image-organizer-frontend');
@@ -298,8 +309,8 @@ class Image_Organizer_Gallery {
 
         // Upload config (render-time).
         $allow_upload          = filter_var($atts['allow_upload'], FILTER_VALIDATE_BOOLEAN);
-        $upload_category       = sanitize_text_field($atts['upload_category']); // WP category slug.
-        $upload_media_category = sanitize_text_field($atts['upload_media_category']); // MLO slug.
+        $upload_category       = sanitize_title($atts['upload_category']); // WP category slug.
+        $upload_media_category = sanitize_title($atts['upload_media_category']); // MLO slug.
         $upload_key_required   = sanitize_text_field($atts['upload_key']);
         $upload_require_review = filter_var($atts['upload_require_review'], FILTER_VALIDATE_BOOLEAN);
         $upload_max_mb         = max(1, (int) $atts['upload_max_mb']);
@@ -480,7 +491,6 @@ class Image_Organizer_Gallery {
 
             <!-- Upload form (optional, based on shortcode attributes) -->
             <?php if ($allow_upload) : ?>
-                <!-- Separation from gallery tiles & Load More -->
                 <div class="io-upload-separator">
                     <div class="io-upload-card">
                         <h3 class="io-upload-title">
@@ -519,7 +529,6 @@ class Image_Organizer_Gallery {
                                         required />
                                     <p class="io-upload-help">
                                         <?php
-                                        /* translators: %d: max upload size in megabytes */
                                         printf(
                                             esc_html__('Max size: %dMB. Allowed: PNG only (650px wide).', 'image-organizer'),
                                             (int) $upload_max_mb
@@ -588,7 +597,11 @@ class Image_Organizer_Gallery {
 
                                 <input type="hidden" name="io_gallery_id" value="<?php echo esc_attr($gallery_id); ?>" />
                                 <input type="hidden" name="io_upload_category" value="<?php echo esc_attr($upload_category); ?>" />
+
+                                <!-- Support both hidden names (backend reads either). -->
                                 <input type="hidden" name="io_upload_media_category" value="<?php echo esc_attr($upload_media_category); ?>" />
+                                <input type="hidden" name="io_upload_media_categories" value="<?php echo esc_attr($upload_media_category); ?>" />
+
                                 <input type="hidden" name="io_require_review" value="<?php echo $upload_require_review ? '1' : '0'; ?>" />
                                 <input type="hidden" name="io_max_mb" value="<?php echo esc_attr($upload_max_mb); ?>" />
 
@@ -684,10 +697,10 @@ class Image_Organizer_Gallery {
             wp_send_json_error(array('message' => 'Invalid nonce'), 400);
         }
 
-        $search     = isset($_POST['search']) ? sanitize_text_field(wp_unslash($_POST['search'])) : '';
-        $categories = isset($_POST['categories']) ? sanitize_text_field(wp_unslash($_POST['categories'])) : '';
-        $tags       = isset($_POST['tags']) ? sanitize_text_field(wp_unslash($_POST['tags'])) : '';
-        $media_categories = isset($_POST['media_categories']) ? sanitize_text_field(wp_unslash($_POST['media_categories'])) : '';
+        $search          = isset($_POST['search']) ? sanitize_text_field(wp_unslash($_POST['search'])) : '';
+        $categories      = isset($_POST['categories']) ? sanitize_text_field(wp_unslash($_POST['categories'])) : '';
+        $tags            = isset($_POST['tags']) ? sanitize_text_field(wp_unslash($_POST['tags'])) : '';
+        $media_categories= isset($_POST['media_categories']) ? sanitize_text_field(wp_unslash($_POST['media_categories'])) : '';
 
         $filter_taxonomy_raw = isset($_POST['filter_taxonomy'])
             ? sanitize_text_field(wp_unslash($_POST['filter_taxonomy']))
@@ -703,7 +716,7 @@ class Image_Organizer_Gallery {
             'post_type'      => 'attachment',
             'post_status'    => 'inherit',
             'post_mime_type' => 'image',
-            'posts_per_page' => -1, // Search across ALL matching images.
+            'posts_per_page' => -1,
             'orderby'        => 'date',
             'order'          => 'DESC',
         );
@@ -719,7 +732,6 @@ class Image_Organizer_Gallery {
 
         $tax_query = array();
 
-        // WP category filter.
         if (! empty($categories)) {
             $category_slugs = $this->parse_slug_csv($categories);
             if (! empty($category_slugs)) {
@@ -731,7 +743,6 @@ class Image_Organizer_Gallery {
             }
         }
 
-        // WP tag filter.
         if (! empty($tags)) {
             $tag_slugs = $this->parse_slug_csv($tags);
             if (! empty($tag_slugs)) {
@@ -743,7 +754,6 @@ class Image_Organizer_Gallery {
             }
         }
 
-        // MLO media_category filter.
         if (! empty($media_categories) && $this->mlo_is_available()) {
             $mlo_slugs = $this->parse_slug_csv($media_categories);
             if (! empty($mlo_slugs)) {
@@ -779,23 +789,12 @@ class Image_Organizer_Gallery {
             $description   = get_post_field('post_content', $attachment_id);
             $alt           = get_post_meta($attachment_id, '_wp_attachment_image_alt', true);
             $image_src     = wp_get_attachment_image_src($attachment_id, 'large');
-            $thumb_html    = wp_get_attachment_image(
-                $attachment_id,
-                'medium',
-                false,
-                array(
-                    'class' => 'io-gallery-thumb',
-                )
-            );
-            $download_url = wp_get_attachment_url($attachment_id);
+            $thumb_html    = wp_get_attachment_image($attachment_id, 'medium', false, array('class' => 'io-gallery-thumb'));
+            $download_url  = wp_get_attachment_url($attachment_id);
 
             $item_terms = array();
             if ($show_filter && $filter_taxonomy) {
-                $item_terms_ids = wp_get_post_terms(
-                    $attachment_id,
-                    $filter_taxonomy,
-                    array('fields' => 'ids')
-                );
+                $item_terms_ids = wp_get_post_terms($attachment_id, $filter_taxonomy, array('fields' => 'ids'));
                 if (! is_wp_error($item_terms_ids) && ! empty($item_terms_ids)) {
                     foreach ($item_terms_ids as $term_id) {
                         $item_terms[] = 'term-' . $term_id;
@@ -817,19 +816,10 @@ class Image_Organizer_Gallery {
             }
 
             $button_aria_label = $button_label_parts
-                ? sprintf(
-                    /* translators: %s: image title, caption, or alt text. */
-                    __('View details for "%s"', 'image-organizer'),
-                    implode(' – ', $button_label_parts)
-                )
+                ? sprintf(__('View details for "%s"', 'image-organizer'), implode(' – ', $button_label_parts))
                 : __('View image details', 'image-organizer');
             ?>
-            <div
-                class="io-gallery-item"
-                role="listitem"
-                <?php if ($show_filter) : ?>
-                data-io-terms="<?php echo esc_attr($item_terms_attr); ?>"
-                <?php endif; ?>>
+            <div class="io-gallery-item" role="listitem" <?php if ($show_filter) : ?>data-io-terms="<?php echo esc_attr($item_terms_attr); ?>"<?php endif; ?>>
                 <button
                     class="io-gallery-trigger"
                     type="button"
@@ -843,16 +833,12 @@ class Image_Organizer_Gallery {
                     <?php echo wp_kses_post($thumb_html); ?>
                 </button>
             </div>
-        <?php
+            <?php
         endwhile;
 
         wp_reset_postdata();
 
-        wp_send_json_success(
-            array(
-                'html' => ob_get_clean(),
-            )
-        );
+        wp_send_json_success(array('html' => ob_get_clean()));
     }
 
     public function ajax_load_more() {
@@ -867,8 +853,8 @@ class Image_Organizer_Gallery {
         $per_page = isset($_POST['per_page']) ? max(1, intval($_POST['per_page'])) : 12;
         $columns  = isset($_POST['columns']) ? max(1, min(6, intval($_POST['columns']))) : 4;
 
-        $categories = isset($_POST['categories']) ? sanitize_text_field(wp_unslash($_POST['categories'])) : '';
-        $tags       = isset($_POST['tags']) ? sanitize_text_field(wp_unslash($_POST['tags'])) : '';
+        $categories       = isset($_POST['categories']) ? sanitize_text_field(wp_unslash($_POST['categories'])) : '';
+        $tags             = isset($_POST['tags']) ? sanitize_text_field(wp_unslash($_POST['tags'])) : '';
         $media_categories = isset($_POST['media_categories']) ? sanitize_text_field(wp_unslash($_POST['media_categories'])) : '';
 
         $filter_taxonomy_raw = isset($_POST['filter_taxonomy'])
@@ -942,13 +928,7 @@ class Image_Organizer_Gallery {
         $query = new WP_Query($args);
 
         if (! $query->have_posts()) {
-            wp_send_json_success(
-                array(
-                    'html'      => '',
-                    'has_more'  => false,
-                    'next_page' => null,
-                )
-            );
+            wp_send_json_success(array('html' => '', 'has_more' => false, 'next_page' => null));
         }
 
         ob_start();
@@ -961,23 +941,12 @@ class Image_Organizer_Gallery {
             $description   = get_post_field('post_content', $attachment_id);
             $alt           = get_post_meta($attachment_id, '_wp_attachment_image_alt', true);
             $image_src     = wp_get_attachment_image_src($attachment_id, 'large');
-            $thumb_html    = wp_get_attachment_image(
-                $attachment_id,
-                'medium',
-                false,
-                array(
-                    'class' => 'io-gallery-thumb',
-                )
-            );
-            $download_url = wp_get_attachment_url($attachment_id);
+            $thumb_html    = wp_get_attachment_image($attachment_id, 'medium', false, array('class' => 'io-gallery-thumb'));
+            $download_url  = wp_get_attachment_url($attachment_id);
 
             $item_terms = array();
             if ($show_filter && $filter_taxonomy) {
-                $item_terms_ids = wp_get_post_terms(
-                    $attachment_id,
-                    $filter_taxonomy,
-                    array('fields' => 'ids')
-                );
+                $item_terms_ids = wp_get_post_terms($attachment_id, $filter_taxonomy, array('fields' => 'ids'));
                 if (! is_wp_error($item_terms_ids) && ! empty($item_terms_ids)) {
                     foreach ($item_terms_ids as $term_id) {
                         $item_terms[] = 'term-' . $term_id;
@@ -999,19 +968,10 @@ class Image_Organizer_Gallery {
             }
 
             $button_aria_label = $button_label_parts
-                ? sprintf(
-                    /* translators: %s: image title, caption, or alt text. */
-                    __('View details for "%s"', 'image-organizer'),
-                    implode(' – ', $button_label_parts)
-                )
+                ? sprintf(__('View details for "%s"', 'image-organizer'), implode(' – ', $button_label_parts))
                 : __('View image details', 'image-organizer');
             ?>
-            <div
-                class="io-gallery-item"
-                role="listitem"
-                <?php if ($show_filter) : ?>
-                data-io-terms="<?php echo esc_attr($item_terms_attr); ?>"
-                <?php endif; ?>>
+            <div class="io-gallery-item" role="listitem" <?php if ($show_filter) : ?>data-io-terms="<?php echo esc_attr($item_terms_attr); ?>"<?php endif; ?>>
                 <button
                     class="io-gallery-trigger"
                     type="button"
@@ -1035,13 +995,7 @@ class Image_Organizer_Gallery {
         $has_more  = $page < $max_pages;
         $next_page = $has_more ? $page + 1 : null;
 
-        wp_send_json_success(
-            array(
-                'html'      => $html,
-                'has_more'  => $has_more,
-                'next_page' => $next_page,
-            )
-        );
+        wp_send_json_success(array('html' => $html, 'has_more' => $has_more, 'next_page' => $next_page));
     }
 
     public function ajax_upload_image() {
@@ -1135,8 +1089,16 @@ class Image_Organizer_Gallery {
         $title          = isset($_POST['io_title']) ? sanitize_text_field(wp_unslash($_POST['io_title'])) : '';
         $description    = isset($_POST['io_description']) ? sanitize_textarea_field(wp_unslash($_POST['io_description'])) : '';
         $alt            = isset($_POST['io_alt']) ? sanitize_text_field(wp_unslash($_POST['io_alt'])) : '';
-        $category_slug  = isset($_POST['io_upload_category']) ? sanitize_text_field(wp_unslash($_POST['io_upload_category'])) : '';
-        $mlo_slug       = isset($_POST['io_upload_media_category']) ? sanitize_text_field(wp_unslash($_POST['io_upload_media_category'])) : '';
+        $category_slug  = isset($_POST['io_upload_category']) ? sanitize_title(wp_unslash($_POST['io_upload_category'])) : '';
+
+        // Support BOTH hidden field names.
+        $mlo_slug = '';
+        if (isset($_POST['io_upload_media_category'])) {
+            $mlo_slug = sanitize_title(wp_unslash($_POST['io_upload_media_category']));
+        } elseif (isset($_POST['io_upload_media_categories'])) {
+            $mlo_slug = sanitize_title(wp_unslash($_POST['io_upload_media_categories']));
+        }
+
         $require_review = ! empty($_POST['io_require_review']) && '1' === sanitize_text_field(wp_unslash($_POST['io_require_review']));
 
         $attachment = array(
@@ -1173,11 +1135,23 @@ class Image_Organizer_Gallery {
         }
 
         // Optional: assign Media Library Organizer "media_category" term.
-        if ($mlo_slug && $this->mlo_is_available()) {
-            $mlo_term = get_term_by('slug', $mlo_slug, self::MLO_TAXONOMY);
-            if ($mlo_term && ! is_wp_error($mlo_term)) {
-                wp_set_object_terms($attach_id, (int) $mlo_term->term_id, self::MLO_TAXONOMY, true);
+        if ($mlo_slug) {
+            if (! $this->mlo_is_available()) {
+                wp_send_json_error(array('message' => 'Media Library Organizer taxonomy not available.'), 400);
             }
+
+            $mlo_term = get_term_by('slug', $mlo_slug, self::MLO_TAXONOMY);
+            if (! $mlo_term || is_wp_error($mlo_term)) {
+                wp_send_json_error(array(
+                    'message' => sprintf(
+                        'Media category "%s" not found. Create it first in Media Library Organizer.',
+                        $mlo_slug
+                    ),
+                ), 400);
+            }
+
+            // Assign by term ID (append true).
+            wp_set_object_terms($attach_id, array((int) $mlo_term->term_id), self::MLO_TAXONOMY, true);
         }
 
         $image_src    = wp_get_attachment_image_src($attach_id, 'large');

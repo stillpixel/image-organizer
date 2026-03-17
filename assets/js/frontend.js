@@ -301,6 +301,8 @@ jQuery(function ($) {
             search: query,
             categories: $wrapper.data('io-categories') || '',
             tags: $wrapper.data('io-tags') || '',
+            // ✅ IMPORTANT: include Media Library Organizer (media_category) filters
+            media_categories: $wrapper.data('io-media-categories') || '',
             filter_taxonomy: $wrapper.data('io-filter-taxonomy') || 'category',
             show_filter: $wrapper.data('io-show-filter') || 'false',
             ids: $wrapper.data('io-ids') || ''
@@ -362,7 +364,7 @@ jQuery(function ($) {
             $status.text('');
         }
 
-        // Easiest and most robust: full page reload restores original gallery,
+        // Full page reload restores original gallery,
         // including pagination, filters, and markup as rendered by the shortcode.
         window.location.reload();
     });
@@ -524,6 +526,8 @@ jQuery(function ($) {
             columns: $wrapper.data('io-columns'),
             categories: $wrapper.data('io-categories') || '',
             tags: $wrapper.data('io-tags') || '',
+            // ✅ IMPORTANT: include Media Library Organizer (media_category) filters
+            media_categories: $wrapper.data('io-media-categories') || '',
             filter_taxonomy: $wrapper.data('io-filter-taxonomy') || 'category',
             show_filter: $wrapper.data('io-show-filter') || 'false',
             ids: $wrapper.data('io-ids') || ''
